@@ -1,0 +1,17 @@
+.DS_Store
+.env.local
+*.log
+gha-creds-*.json
+gke_gcloud_auth_plugin_cache
+tmp
+
+.terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+.terraform.tfstate.lock.info
+
+*.planfile
+backend.tf.json
