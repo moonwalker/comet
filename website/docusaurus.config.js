@@ -4,7 +4,7 @@
 // There are various equivalent ways to declare your Docusaurus config.
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
-import {themes as prismThemes} from 'prism-react-renderer';
+import { themes as prismThemes } from 'prism-react-renderer'
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -34,7 +34,7 @@ const config = {
   // may want to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: 'en',
-    locales: ['en'],
+    locales: ['en']
   },
 
   presets: [
@@ -43,7 +43,7 @@ const config = {
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
-          sidebarPath: './sidebars.js',
+          sidebarPath: './sidebars.js'
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           // editUrl: 'https://github.com/moonwalker/comet/tree/main/website/',
@@ -52,22 +52,21 @@ const config = {
           showReadingTime: true,
           feedOptions: {
             type: ['rss', 'atom'],
-            xslt: true,
+            xslt: true
           },
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/moonwalker/comet/tree/main/website/',
+          editUrl: 'https://github.com/moonwalker/comet/tree/main/website/',
           // Useful options to enforce blogging best practices
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
+          onUntruncatedBlogPosts: 'warn'
         },
         theme: {
-          customCss: './src/css/custom.css',
-        },
-      }),
-    ],
+          customCss: './src/css/custom.css'
+        }
+      })
+    ]
   ],
 
   themeConfig:
@@ -79,22 +78,22 @@ const config = {
         title: 'Comet',
         logo: {
           alt: 'Comet Logo',
-          src: 'img/logo.png',
+          src: 'img/logo.png'
         },
         items: [
           {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
-            label: 'Docs',
+            label: 'Docs'
           },
           // {to: '/blog', label: 'Blog', position: 'left'},
           {
             href: 'https://github.com/moonwalker/comet',
             label: 'GitHub',
-            position: 'right',
-          },
-        ],
+            position: 'right'
+          }
+        ]
       },
       footer: {
         style: 'dark',
@@ -139,13 +138,13 @@ const config = {
         //     ],
         //   },
         // ],
-        copyright: `Copyright © ${new Date().getFullYear()} Moon & Walker Technologies`,
+        copyright: `Copyright © ${new Date().getFullYear()} Moon & Walker Technologies`
       },
       prism: {
         theme: prismThemes.github,
-        darkTheme: prismThemes.dracula,
-      },
-    }),
-};
+        darkTheme: prismThemes.dracula
+      }
+    })
+}
 
-export default config;
+export default config
