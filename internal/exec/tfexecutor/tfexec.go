@@ -36,8 +36,12 @@ func (e *executor) ResolveVars(component *schema.Component, stacks *schema.Stack
 		}
 
 		// component ref found, resolve it through stacks
-		referencedStack := stacks.GetStack(componentRef.Stack)
-		if referencedComponent, ok := referencedStack.Components[componentRef.Component]; ok {
+		referencedStack, err := stacks.GetStack(componentRef.Stack)
+		if err != nil {
+			return err
+		}
+		referencedComponent := referencedStack.ComponentByName(componentRef.Component)
+		if referencedComponent != nil {
 			referencedComponentState, err := e.Output(referencedComponent)
 			if err != nil {
 				return err
@@ -56,7 +60,7 @@ func (e *executor) ResolveVars(component *schema.Component, stacks *schema.Stack
 func (e *executor) Output(component *schema.Component) (map[string]execintf.OutputMeta, error) {
 	log.Debug("output", "component", component.Name)
 
-	tf, err := tfexec.NewTerraform(component.WorkDir, e.cmd)
+	tf, err := tfexec.NewTerraform(component.Path, e.cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +100,7 @@ func (e *executor) Plan(component *schema.Component) (bool, error) {
 		return false, err
 	}
 
-	tf, err := tfexec.NewTerraform(component.WorkDir, e.cmd)
+	tf, err := tfexec.NewTerraform(component.Path, e.cmd)
 	if err != nil {
 		return false, err
 	}
@@ -118,7 +122,7 @@ func (e *executor) Apply(component *schema.Component) error {
 		return err
 	}
 
-	tf, err := tfexec.NewTerraform(component.WorkDir, e.cmd)
+	tf, err := tfexec.NewTerraform(component.Path, e.cmd)
 	if err != nil {
 		return err
 	}
@@ -131,9 +135,30 @@ func (e *executor) Apply(component *schema.Component) error {
 	return tf.Apply(context.Background(), tfexec.VarFile(varsfile))
 }
 
+func (e *executor) Destroy(component *schema.Component) error {
+	log.Debug("destroy", "component", component.Name)
+
+	varsfile, err := prepareProvision(component, false)
+	if err != nil {
+		return err
+	}
+
+	tf, err := tfexec.NewTerraform(component.Path, e.cmd)
+	if err != nil {
+		return err
+	}
+
+	err = tf.Init(context.Background(), tfexec.Reconfigure(true))
+	if err != nil {
+		return err
+	}
+
+	return tf.Destroy(context.Background(), tfexec.VarFile(varsfile))
+}
+
 func prepareProvision(component *schema.Component, generateBackend bool) (string, error) {
 	varsfile := fmt.Sprintf("%s-%s.tfvars.json", component.Stack, component.Name)
-	err := writeJSON(component.Vars, component.WorkDir, varsfile)
+	err := writeJSON(component.Vars, component.Path, varsfile)
 	if err != nil {
 		return "", err
 	}
@@ -158,7 +183,7 @@ func writeBackend(component *schema.Component) (string, error) {
 	}
 
 	backendfile := "backend.tf.json"
-	err := writeJSON(backend, component.WorkDir, backendfile)
+	err := writeJSON(backend, component.Path, backendfile)
 	if err != nil {
 		return "", err
 	}

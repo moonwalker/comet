@@ -5,13 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
-
-	"github.com/moonwalker/comet/internal/config"
 )
-
-func Init() {
-	SetLevel(config.Settings.LogLevel)
-}
 
 func SetLevel(level string) {
 	switch strings.ToUpper(level) {

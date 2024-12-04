@@ -11,7 +11,7 @@ import (
 const (
 	CmdTofu             = "tofu"
 	CmdTerraform        = "terraform"
-	errExecutorNotFound = "executor not found for command %s"
+	errExecutorNotFound = "executor not found for command: %s"
 )
 
 var (

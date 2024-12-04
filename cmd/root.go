@@ -1,49 +1,70 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/moonwalker/comet/internal/cli"
-	"github.com/moonwalker/comet/internal/config"
 	"github.com/moonwalker/comet/internal/log"
+	"github.com/moonwalker/comet/internal/schema"
 	"github.com/moonwalker/comet/internal/version"
 )
 
 const (
 	name = "comet"
-	desc = "Tool for provisioning and managing infrastructure"
+	desc = "Cosmic tool for provisioning and managing infrastructure"
 )
 
 var (
+	cfgFile = "comet.yaml"
+	config  = &schema.Config{}
+
 	rootCmd = &cobra.Command{
 		Use:               name,
 		Short:             desc,
 		SilenceErrors:     true,
-		SilenceUsage:      true,
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 	}
 )
 
 func init() {
-	err := config.Init()
-	if err != nil {
-		log.Fatal(err)
-	}
+	initConfig()
+	log.SetLevel(config.LogLevel)
 
-	log.Init()
-
-	rootCmd.SetHelpCommand(&cobra.Command{
-		Hidden: true,
-	})
-
-	rootCmd.PersistentFlags().StringVar(&config.Filename, "config", config.Filename, "config file")
-	rootCmd.PersistentFlags().StringVar(&config.Settings.StacksDir, "dir", config.Settings.StacksDir, "stacks directory")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "config file")
+	rootCmd.PersistentFlags().StringVar(&config.StacksDir, "dir", config.StacksDir, "stacks directory")
 	rootCmd.ParseFlags(os.Args)
 
 	rootCmd.Version = version.Info()
+}
+
+func initConfig() {
+	viper.SetConfigFile(cfgFile)
+
+	viper.SetDefault("log_level", "INFO")
+	viper.SetDefault("tf_command", "tofu")
+	viper.SetDefault("stacks_dir", "stacks")
+	viper.SetDefault("work_dir", "stacks/_components")
+	viper.SetDefault("use_work_dir", false)
+
+	viper.AutomaticEnv()
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			log.Fatal(err)
+		}
+	}
+
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func Execute() {

@@ -13,8 +13,10 @@ type OutputMeta struct {
 }
 
 type Executor interface {
-	ResolveVars(component *schema.Component, stacks *schema.Stacks) error
 	Plan(component *schema.Component) (bool, error)
 	Apply(component *schema.Component) error
+	Destroy(component *schema.Component) error
 	Output(component *schema.Component) (map[string]OutputMeta, error)
+
+	ResolveVars(component *schema.Component, stacks *schema.Stacks) error
 }

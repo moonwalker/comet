@@ -3,11 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"path"
 
+	cp "github.com/otiai10/copy"
 	"github.com/spf13/cobra"
 
 	"github.com/moonwalker/comet/internal/cli"
-	"github.com/moonwalker/comet/internal/config"
 	"github.com/moonwalker/comet/internal/exec"
 	"github.com/moonwalker/comet/internal/exec/execintf"
 	"github.com/moonwalker/comet/internal/log"
@@ -17,45 +18,66 @@ import (
 
 var (
 	listCmd = &cobra.Command{
-		Use:     "list",
+		Use:     "list [stack]",
 		Short:   "List stacks or components",
 		Aliases: []string{"ls"},
-		Run:     list,
-		Args:    cobra.MaximumNArgs(2),
+		RunE:    list,
+		Args:    cobra.MaximumNArgs(1),
 	}
 	planCmd = &cobra.Command{
-		Use:   "plan",
+		Use:   "plan <stack> [component]",
 		Short: "Show changes required by the current configuration",
 		Run:   plan,
+		Args:  cobra.RangeArgs(1, 2),
 	}
 	applyCmd = &cobra.Command{
-		Use:   "apply",
+		Use:   "apply <stack> [component]",
 		Short: "Create or update infrastructure",
 		Run:   apply,
-	}
-	outputCmd = &cobra.Command{
-		Use:   "output",
-		Short: "Shows infrastructure state",
-		Run:   output,
+		Args:  cobra.RangeArgs(1, 2),
 	}
 	destroyCmd = &cobra.Command{
-		Use:   "destroy",
+		Use:   "destroy <stack> [component]",
 		Short: "Destroy previously-created infrastructure",
 		Run:   destroy,
+		Args:  cobra.RangeArgs(1, 2),
+	}
+	outputCmd = &cobra.Command{
+		Use:   "output <stack> [component]",
+		Short: "Show output values from components",
+		Run:   output,
+		Args:  cobra.RangeArgs(1, 2),
 	}
 )
 
 func init() {
-	rootCmd.AddCommand(listCmd, planCmd, applyCmd, outputCmd, destroyCmd)
+	rootCmd.AddCommand(listCmd, planCmd, applyCmd, destroyCmd, outputCmd)
 }
 
-func list(cmd *cobra.Command, args []string) {
-	stacks, err := stacks.LoadStacks(config.Settings.StacksDir)
+func list(cmd *cobra.Command, args []string) error {
+	stacks, err := stacks.LoadStacks(config.StacksDir)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	cli.PrintStacksList(stacks)
+	if len(args) == 0 {
+		cli.PrintStacksList(stacks)
+		return nil
+	}
+
+	stack, err := stacks.GetStack(args[0])
+	if stack == nil {
+		return err
+	}
+
+	comps := stack.Components
+	if len(comps) == 0 {
+		log.Info("no components found")
+		return nil
+	}
+
+	cli.PrintComponentsList(comps)
+	return nil
 }
 
 func plan(cmd *cobra.Command, args []string) {
@@ -70,6 +92,15 @@ func plan(cmd *cobra.Command, args []string) {
 func apply(cmd *cobra.Command, args []string) {
 	run(args, func(component *schema.Component, executor execintf.Executor) {
 		err := executor.Apply(component)
+		if err != nil {
+			log.Fatal(err)
+		}
+	})
+}
+
+func destroy(cmd *cobra.Command, args []string) {
+	run(args, func(component *schema.Component, executor execintf.Executor) {
+		err := executor.Destroy(component)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -91,29 +122,20 @@ func output(cmd *cobra.Command, args []string) {
 	})
 }
 
-func destroy(cmd *cobra.Command, args []string) {
-
-}
-
 func run(args []string, cb func(*schema.Component, execintf.Executor)) {
-	if len(args) < 1 {
-		log.Fatal(fmt.Errorf("stack name is required"))
-	}
-
-	stacks, err := stacks.LoadStacks(config.Settings.StacksDir)
+	stacks, err := stacks.LoadStacks(config.StacksDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	executor, err := exec.GetExecutor(config.Settings.Command)
+	executor, err := exec.GetExecutor(config.Command)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	stackName := args[0]
-	stack := stacks.GetStack(stackName)
+	stack, err := stacks.GetStack(args[0])
 	if stack == nil {
-		log.Fatal(fmt.Errorf("stack not found: %s", stackName))
+		log.Fatal(err)
 	}
 
 	var componentName string
@@ -126,9 +148,13 @@ func run(args []string, cb func(*schema.Component, execintf.Executor)) {
 			continue
 		}
 
-		err := component.CopyToWorkDir()
-		if err != nil {
-			log.Fatal(err)
+		if config.UseWorkDir {
+			dest := path.Join(config.WorkDir, stack.Name, component.Name)
+			err := cp.Copy(component.Path, dest)
+			if err != nil {
+				log.Fatal(err)
+			}
+			component.Path = dest
 		}
 
 		err = executor.ResolveVars(component, stacks)

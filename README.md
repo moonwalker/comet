@@ -1,6 +1,6 @@
 # Comet 
 
-A powerful tool for provisioning and managing infrastructure.
+Cosmic tool for provisioning and managing infrastructure.
 
 ## Overview
 
@@ -10,8 +10,7 @@ Comet is a command-line interface (CLI) tool designed to streamline infrastructu
 
 - Infrastructure provisioning and management
 - Terraform/OpenTofu integration
-- JavaScript support for configuration
-- Color-supported CLI interface
+- JavaScript configuration language
 - Configurable through YAML
 
 ## Installation
@@ -48,7 +47,6 @@ Comet can be configured using `comet.yaml` in your project directory.
 ### Requirements
 
 - Go 1.23+
-- Make (optional, for build scripts)
 
 ### Setup
 
@@ -57,12 +55,7 @@ Comet can be configured using `comet.yaml` in your project directory.
 git clone https://github.com/moonwalker/comet.git
 ```
 
-2. Install dependencies
-```bash
-go mod download
-```
-
-3. Build the project
+2. Build the project
 ```bash
 go build
 ```
@@ -74,7 +67,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the terms specified in the project's license file.
-
-## Maintainers
-
-- Moonwalker Team (@moonwalker)

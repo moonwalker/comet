@@ -2,6 +2,8 @@ package cli
 
 import (
 	"os"
+	"slices"
+	"strings"
 
 	"github.com/arsham/figurine/figurine"
 	"github.com/jwalton/go-supportscolor"
@@ -19,9 +21,29 @@ func PrintStyledText(text string) error {
 
 func PrintStacksList(stacks *schema.Stacks) {
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"name", "type", "path"})
+	table.SetHeader([]string{"stack", "type", "path"})
 	for _, s := range stacks.OrderByName() {
 		table.Append([]string{s.Name, s.Type, s.Path})
+	}
+
+	table.Render()
+}
+
+func PrintComponentsList(components []*schema.Component) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"component", "path", "vars"})
+
+	slices.SortFunc(components, func(a, b *schema.Component) int {
+		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+	})
+
+	for _, c := range components {
+		varsList := []string{}
+		for k, v := range c.Vars {
+			varsList = append(varsList, k+"="+v.(string))
+		}
+
+		table.Append([]string{c.Name, c.Path, strings.Join(varsList, "\n")})
 	}
 
 	table.Render()

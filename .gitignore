@@ -3,6 +3,8 @@
 *.log
 gha-creds-*.json
 gke_gcloud_auth_plugin_cache
+dist
+hack
 tmp
 
 .terraform
