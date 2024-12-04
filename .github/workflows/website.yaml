@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Build and deploy website
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build Docusaurus
+    name: Build website
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,15 +21,17 @@ jobs:
           node-version: latest
           cache: yarn
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-      - name: Build website
-        run: yarn build
+      - name: Install dependencies and build website
+        run: |
+          cd website
+          npm ci
+          npm run build
 
       - name: Upload Build Artifact
+        id: deployment
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build
+          path: website/build
 
   deploy:
     name: Deploy to GitHub Pages
