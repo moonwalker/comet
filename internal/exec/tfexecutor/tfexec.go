@@ -9,21 +9,20 @@ import (
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 
-	"github.com/moonwalker/comet/internal/exec/execintf"
 	"github.com/moonwalker/comet/internal/log"
 	"github.com/moonwalker/comet/internal/schema"
 )
 
 type executor struct {
-	cmd string
+	config *schema.Config
 }
 
 func init() {
 	os.Setenv("TF_IN_AUTOMATION", "true")
 }
 
-func NewExecutor(cmd string) (execintf.Executor, error) {
-	return &executor{cmd}, nil
+func NewExecutor(config *schema.Config) (*executor, error) {
+	return &executor{config}, nil
 }
 
 func (e *executor) ResolveVars(component *schema.Component, stacks *schema.Stacks) error {
@@ -57,10 +56,10 @@ func (e *executor) ResolveVars(component *schema.Component, stacks *schema.Stack
 	return nil
 }
 
-func (e *executor) Output(component *schema.Component) (map[string]execintf.OutputMeta, error) {
+func (e *executor) Output(component *schema.Component) (map[string]schema.OutputMeta, error) {
 	log.Debug("output", "component", component.Name)
 
-	tf, err := tfexec.NewTerraform(component.Path, e.cmd)
+	tf, err := tfexec.NewTerraform(component.Path, e.config.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +79,9 @@ func (e *executor) Output(component *schema.Component) (map[string]execintf.Outp
 		return nil, fmt.Errorf("empty state for: %s, provision that first", component.Name)
 	}
 
-	output := make(map[string]execintf.OutputMeta, len(tfoutput))
+	output := make(map[string]schema.OutputMeta, len(tfoutput))
 	for k, v := range tfoutput {
-		output[k] = execintf.OutputMeta{
+		output[k] = schema.OutputMeta{
 			Sensitive: v.Sensitive,
 			Type:      v.Type,
 			Value:     v.Value,
@@ -95,12 +94,12 @@ func (e *executor) Output(component *schema.Component) (map[string]execintf.Outp
 func (e *executor) Plan(component *schema.Component) (bool, error) {
 	log.Debug("plan", "component", component.Name)
 
-	varsfile, err := prepareProvision(component, false)
+	varsfile, err := prepareProvision(component, e.config.GenerateBackend)
 	if err != nil {
 		return false, err
 	}
 
-	tf, err := tfexec.NewTerraform(component.Path, e.cmd)
+	tf, err := tfexec.NewTerraform(component.Path, e.config.Command)
 	if err != nil {
 		return false, err
 	}
@@ -117,12 +116,12 @@ func (e *executor) Plan(component *schema.Component) (bool, error) {
 func (e *executor) Apply(component *schema.Component) error {
 	log.Debug("apply", "component", component.Name)
 
-	varsfile, err := prepareProvision(component, false)
+	varsfile, err := prepareProvision(component, e.config.GenerateBackend)
 	if err != nil {
 		return err
 	}
 
-	tf, err := tfexec.NewTerraform(component.Path, e.cmd)
+	tf, err := tfexec.NewTerraform(component.Path, e.config.Command)
 	if err != nil {
 		return err
 	}
@@ -138,12 +137,12 @@ func (e *executor) Apply(component *schema.Component) error {
 func (e *executor) Destroy(component *schema.Component) error {
 	log.Debug("destroy", "component", component.Name)
 
-	varsfile, err := prepareProvision(component, false)
+	varsfile, err := prepareProvision(component, e.config.GenerateBackend)
 	if err != nil {
 		return err
 	}
 
-	tf, err := tfexec.NewTerraform(component.Path, e.cmd)
+	tf, err := tfexec.NewTerraform(component.Path, e.config.Command)
 	if err != nil {
 		return err
 	}

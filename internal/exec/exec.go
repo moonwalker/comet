@@ -6,6 +6,7 @@ import (
 
 	"github.com/moonwalker/comet/internal/exec/execintf"
 	"github.com/moonwalker/comet/internal/exec/tfexecutor"
+	"github.com/moonwalker/comet/internal/schema"
 )
 
 const (
@@ -18,11 +19,11 @@ var (
 	tfCommands = []string{CmdTofu, CmdTerraform}
 )
 
-func GetExecutor(cmd string) (execintf.Executor, error) {
+func GetExecutor(config *schema.Config) (execintf.Executor, error) {
 	switch {
-	case slices.Contains(tfCommands, cmd):
-		return tfexecutor.NewExecutor(cmd)
+	case slices.Contains(tfCommands, config.Command):
+		return tfexecutor.NewExecutor(config)
 	}
 
-	return nil, fmt.Errorf(errExecutorNotFound, cmd)
+	return nil, fmt.Errorf(errExecutorNotFound, config.Command)
 }

@@ -2,6 +2,7 @@ package js
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 
 	"github.com/dop251/goja"
@@ -10,6 +11,7 @@ import (
 	"github.com/moonwalker/comet/internal/loaders"
 	"github.com/moonwalker/comet/internal/log"
 	"github.com/moonwalker/comet/internal/schema"
+	"github.com/moonwalker/comet/internal/secrets"
 )
 
 const (
@@ -42,6 +44,10 @@ func (vm *jsinterpreter) Load(path string) (*schema.Stack, error) {
 
 	stack := schema.NewStack(path, "js")
 
+	vm.rt.Set("print", fmt.Println)
+	vm.rt.Set("env", vm.envProxy())
+	vm.rt.Set("envs", vm.envsFunc)
+	vm.rt.Set("secrets", vm.secretsFunc)
 	vm.rt.Set("stack", vm.registerStack(stack))
 	vm.rt.Set("backend", vm.registerBackend(stack))
 	vm.rt.Set("component", vm.registerComponent(stack))
@@ -53,6 +59,34 @@ func (vm *jsinterpreter) Load(path string) (*schema.Stack, error) {
 	}
 
 	return stack, nil
+}
+
+func (vm *jsinterpreter) envProxy() any {
+	return vm.getProxy(func(key string) any {
+		return os.Getenv(key)
+	})
+}
+
+func (vm *jsinterpreter) envsFunc(key, value string) any {
+	if len(value) == 0 {
+		return os.Getenv(key)
+	}
+
+	err := os.Setenv(key, value)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return value
+}
+
+func (vm *jsinterpreter) secretsFunc(ref string) any {
+	res, err := secrets.Get(ref)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return res
 }
 
 func (vm *jsinterpreter) registerStack(stack *schema.Stack) func(string) goja.Value {

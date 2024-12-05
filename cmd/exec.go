@@ -128,7 +128,7 @@ func run(args []string, cb func(*schema.Component, execintf.Executor)) {
 		log.Fatal(err)
 	}
 
-	executor, err := exec.GetExecutor(config.Command)
+	executor, err := exec.GetExecutor(config)
 	if err != nil {
 		log.Fatal(err)
 	}
