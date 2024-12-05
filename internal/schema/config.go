@@ -5,6 +5,5 @@ type Config struct {
 	Command         string `mapstructure:"tf_command"`
 	StacksDir       string `mapstructure:"stacks_dir"`
 	WorkDir         string `mapstructure:"work_dir"`
-	UseWorkDir      bool   `mapstructure:"use_work_dir"`
 	GenerateBackend bool   `mapstructure:"generate_backend"`
 }

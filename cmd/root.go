@@ -60,8 +60,6 @@ func initConfig() {
 	viper.SetDefault("log_level", "INFO")
 	viper.SetDefault("tf_command", "tofu")
 	viper.SetDefault("stacks_dir", "stacks")
-	viper.SetDefault("work_dir", "stacks/_components")
-	viper.SetDefault("use_work_dir", false)
 	viper.SetDefault("generate_backend", true)
 
 	viper.AutomaticEnv()

@@ -1,4 +1,4 @@
-package stacks
+package parser
 
 import (
 	"fmt"
@@ -10,8 +10,7 @@ import (
 
 	"github.com/bmatcuk/doublestar/v4"
 
-	"github.com/moonwalker/comet/internal/loaders"
-	"github.com/moonwalker/comet/internal/loaders/js"
+	"github.com/moonwalker/comet/internal/parser/js"
 	"github.com/moonwalker/comet/internal/schema"
 )
 
@@ -33,12 +32,12 @@ func LoadStacks(dir string) (*schema.Stacks, error) {
 	err := doublestar.GlobWalk(os.DirFS(dir), globpattern, func(p string, d fs.DirEntry) error {
 		path := filepath.Join(dir, p)
 
-		loader, err := getLoader(path)
+		parser, err := getParser(path)
 		if err != nil {
 			return err
 		}
 
-		stack, err := loader.Load(path)
+		stack, err := parser.Parse(path)
 		if err != nil {
 			return err
 		}
@@ -53,7 +52,7 @@ func LoadStacks(dir string) (*schema.Stacks, error) {
 	return stacks, err
 }
 
-func getLoader(path string) (loaders.Loader, error) {
+func getParser(path string) (schema.Parser, error) {
 	ext := filepath.Ext(path)
 
 	switch {

@@ -20,5 +20,5 @@ const p2 = component('project2', 'test/module', {
 
 const vpc = component('vpc', 'test/module', {
   name: `${p1.name}-vpc`,
-  id: p1.id
+  id: `${p2.id}-vpc`
 })

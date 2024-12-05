@@ -8,7 +8,6 @@ import (
 	"github.com/dop251/goja"
 	"github.com/evanw/esbuild/pkg/api"
 
-	"github.com/moonwalker/comet/internal/loaders"
 	"github.com/moonwalker/comet/internal/log"
 	"github.com/moonwalker/comet/internal/schema"
 	"github.com/moonwalker/comet/internal/secrets"
@@ -23,13 +22,13 @@ type jsinterpreter struct {
 	rt *goja.Runtime
 }
 
-func NewInterpreter() (loaders.Loader, error) {
+func NewInterpreter() (*jsinterpreter, error) {
 	vm := &jsinterpreter{rt: goja.New()}
 	vm.rt.SetFieldNameMapper(&jsonTagNamer{})
 	return vm, nil
 }
 
-func (vm *jsinterpreter) Load(path string) (*schema.Stack, error) {
+func (vm *jsinterpreter) Parse(path string) (*schema.Stack, error) {
 	result := api.Build(api.BuildOptions{
 		EntryPoints: []string{path},
 		Bundle:      true,
@@ -114,7 +113,8 @@ func (vm *jsinterpreter) registerComponent(stack *schema.Stack) func(string, str
 
 			v := c.Vars[property]
 			if v == nil {
-				v = schema.ComponentRefJSON(stack.Name, name, property)
+				// property reference template
+				v = c.PropertyRef(property)
 			}
 
 			return v

@@ -7,30 +7,13 @@ import (
 )
 
 const (
-	errStackExists   = "stack already exists: %s"
-	errStackNotFound = "stack not found: %s"
+	errStackExists        = "stack already exists: %s"
+	errStackNotFound      = "stack not found: %s"
+	errComponentNotFound  = "component not found: %s in stack: %s"
+	errComponentsNotFound = "no components found in stack: %s"
 )
 
 type (
-	Component struct {
-		Name    string                 `json:"name"`
-		Path    string                 `json:"path"`
-		Stack   string                 `json:"stack"`
-		Backend Backend                `json:"backend"`
-		Vars    map[string]interface{} `json:"vars"`
-	}
-
-	ComponentRef struct {
-		Stack     string `json:"stack"`
-		Component string `json:"component"`
-		Property  string `json:"property"`
-	}
-
-	Backend struct {
-		Type string                 `json:"type"`
-		Data map[string]interface{} `json:"data"`
-	}
-
 	Stack struct {
 		Path       string       `json:"path"`
 		Type       string       `json:"type"`
@@ -57,25 +40,39 @@ func (s *Stack) Valid() bool {
 }
 
 func (s *Stack) AddComponent(name, path string, vars map[string]interface{}) *Component {
-	c := &Component{name, path, s.Name, s.Backend, vars}
+	c := &Component{s, name, path, s.Backend, vars}
 	s.Components = append(s.Components, c)
-
-	// set backend from stack's backend template
-	c.Backend.Data = tpl(s.Backend.Data, map[string]interface{}{"stack": s.Name, "component": name})
-
-	// template vars
-	c.Vars = tpl(vars, map[string]interface{}{"stack": s.Name, "component": name})
-
 	return c
 }
 
-func (s *Stack) ComponentByName(name string) *Component {
+func (s *Stack) GetComponent(name string) (*Component, error) {
 	for _, c := range s.Components {
 		if c.Name == name {
-			return c
+			return c, nil
 		}
 	}
-	return nil
+
+	return nil, fmt.Errorf(errComponentNotFound, name, s.Name)
+}
+
+func (s *Stack) GetComponents(filterName string) ([]*Component, error) {
+	if len(s.Components) == 0 {
+		return nil, fmt.Errorf(errComponentsNotFound, s.Name)
+	}
+
+	// no filter provided, return all components
+	if len(filterName) == 0 {
+		return s.Components, nil
+	}
+
+	// names are unique, so we can use slices.IndexFunc
+	// and return a slice with only one element
+	idx := slices.IndexFunc(s.Components, func(a *Component) bool { return a.Name == filterName })
+	if idx != -1 {
+		return []*Component{s.Components[idx]}, nil
+	}
+
+	return nil, fmt.Errorf(errComponentNotFound, filterName, s.Name)
 }
 
 func (s *Stacks) AddStack(stack *Stack) error {
@@ -97,6 +94,7 @@ func (s *Stacks) GetStack(name string) (*Stack, error) {
 			return stack, nil
 		}
 	}
+
 	return nil, fmt.Errorf(errStackNotFound, name)
 }
 
@@ -104,5 +102,6 @@ func (s *Stacks) OrderByName() []*Stack {
 	slices.SortFunc(s.items, func(a, b *Stack) int {
 		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
 	})
+
 	return s.items
 }

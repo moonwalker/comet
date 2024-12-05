@@ -1,16 +1,24 @@
-package tfexecutor
+package tf
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 
 	"github.com/moonwalker/comet/internal/log"
 	"github.com/moonwalker/comet/internal/schema"
+)
+
+var (
+	errCmdNotFound = "command not found: %s"
+	backendFile    = "backend.tf.json"
+	varsFileFmt    = "%s-%s.tfvars.json"
+	planFileFmt    = "%s-%s.planfile"
 )
 
 type executor struct {
@@ -22,38 +30,12 @@ func init() {
 }
 
 func NewExecutor(config *schema.Config) (*executor, error) {
-	return &executor{config}, nil
-}
-
-func (e *executor) ResolveVars(component *schema.Component, stacks *schema.Stacks) error {
-	// lookup for component ref in vars
-	for _, v := range component.Vars {
-		componentRef := schema.TryComponentRefFromJSON(v)
-		if componentRef == nil {
-			// not component ref, continue
-			continue
-		}
-
-		// component ref found, resolve it through stacks
-		referencedStack, err := stacks.GetStack(componentRef.Stack)
-		if err != nil {
-			return err
-		}
-		referencedComponent := referencedStack.ComponentByName(componentRef.Component)
-		if referencedComponent != nil {
-			referencedComponentState, err := e.Output(referencedComponent)
-			if err != nil {
-				return err
-			}
-
-			if referencedComponentProperty, ok := referencedComponentState[componentRef.Property]; ok {
-				referencedComponentValue := referencedComponentProperty.Value
-				component.Vars[componentRef.Property] = referencedComponentValue
-			}
-		}
+	_, err := exec.LookPath(config.Command)
+	if err != nil {
+		return nil, fmt.Errorf(errCmdNotFound, config.Command)
 	}
 
-	return nil
+	return &executor{config}, nil
 }
 
 func (e *executor) Output(component *schema.Component) (map[string]schema.OutputMeta, error) {
@@ -63,6 +45,8 @@ func (e *executor) Output(component *schema.Component) (map[string]schema.Output
 	if err != nil {
 		return nil, err
 	}
+
+	tf.SetStdout(os.Stdout)
 
 	ctx := context.Background()
 	err = tf.Init(ctx, tfexec.Upgrade(false))
@@ -104,12 +88,14 @@ func (e *executor) Plan(component *schema.Component) (bool, error) {
 		return false, err
 	}
 
+	tf.SetStdout(os.Stdout)
+
 	err = tf.Init(context.Background(), tfexec.Reconfigure(true))
 	if err != nil {
 		return false, err
 	}
 
-	planfile := fmt.Sprintf("%s-%s.planfile", component.Stack, component.Name)
+	planfile := fmt.Sprintf(planFileFmt, component.Stack.Name, component.Name)
 	return tf.Plan(context.Background(), tfexec.VarFile(varsfile), tfexec.Out(planfile))
 }
 
@@ -125,6 +111,8 @@ func (e *executor) Apply(component *schema.Component) error {
 	if err != nil {
 		return err
 	}
+
+	tf.SetStdout(os.Stdout)
 
 	err = tf.Init(context.Background(), tfexec.Reconfigure(true))
 	if err != nil {
@@ -147,6 +135,8 @@ func (e *executor) Destroy(component *schema.Component) error {
 		return err
 	}
 
+	tf.SetStdout(os.Stdout)
+
 	err = tf.Init(context.Background(), tfexec.Reconfigure(true))
 	if err != nil {
 		return err
@@ -156,7 +146,7 @@ func (e *executor) Destroy(component *schema.Component) error {
 }
 
 func prepareProvision(component *schema.Component, generateBackend bool) (string, error) {
-	varsfile := fmt.Sprintf("%s-%s.tfvars.json", component.Stack, component.Name)
+	varsfile := fmt.Sprintf(varsFileFmt, component.Stack.Name, component.Name)
 	err := writeJSON(component.Vars, component.Path, varsfile)
 	if err != nil {
 		return "", err
@@ -181,12 +171,12 @@ func writeBackend(component *schema.Component) (string, error) {
 		},
 	}
 
-	backendfile := "backend.tf.json"
-	err := writeJSON(backend, component.Path, backendfile)
+	err := writeJSON(backend, component.Path, backendFile)
 	if err != nil {
 		return "", err
 	}
-	return backendfile, nil
+
+	return backendFile, nil
 }
 
 func writeJSON(v any, dir string, filename string) error {

@@ -15,3 +15,5 @@ dist
 
 *.planfile
 backend.tf.json
+
+stacks/_components

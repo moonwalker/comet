@@ -1,2 +1,3 @@
 stacks_dir: stacks
+work_dir: stacks/_components
 generate_backend: false
