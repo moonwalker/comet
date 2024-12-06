@@ -25,10 +25,6 @@ type executor struct {
 	config *schema.Config
 }
 
-func init() {
-	os.Setenv("TF_IN_AUTOMATION", "true")
-}
-
 func NewExecutor(config *schema.Config) (*executor, error) {
 	_, err := exec.LookPath(config.Command)
 	if err != nil {
@@ -51,6 +47,7 @@ func (e *executor) Plan(component *schema.Component) (bool, error) {
 		return false, err
 	}
 
+	tf.SetSkipProviderVerify(true)
 	tf.SetStdout(os.Stdout)
 
 	err = tf.Init(context.Background(), tfexec.Reconfigure(true))
@@ -75,6 +72,7 @@ func (e *executor) Apply(component *schema.Component) error {
 		return err
 	}
 
+	tf.SetSkipProviderVerify(true)
 	tf.SetStdout(os.Stdout)
 
 	err = tf.Init(context.Background(), tfexec.Reconfigure(true))
@@ -98,6 +96,7 @@ func (e *executor) Destroy(component *schema.Component) error {
 		return err
 	}
 
+	tf.SetSkipProviderVerify(true)
 	tf.SetStdout(os.Stdout)
 
 	err = tf.Init(context.Background(), tfexec.Reconfigure(true))

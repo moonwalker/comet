@@ -11,11 +11,11 @@ backend('gcs', {
 })
 
 const p1 = component('project', 'test/module', {
-  name: `${opts.common_name}-${stage.name}`
+  name: `${opts.common_name}-${stage.name}-p1`
 })
 
 const p2 = component('project2', 'test/module', {
-  name: `${opts.common_name}-{{ .stack }}`
+  name: `${opts.common_name}-{{ .stack }}-p2`
 })
 
 const vpc = component('vpc', 'test/module', {
