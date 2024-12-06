@@ -38,43 +38,6 @@ func NewExecutor(config *schema.Config) (*executor, error) {
 	return &executor{config}, nil
 }
 
-func (e *executor) Output(component *schema.Component) (map[string]schema.OutputMeta, error) {
-	log.Debug("output", "component", component.Name)
-
-	tf, err := tfexec.NewTerraform(component.Path, e.config.Command)
-	if err != nil {
-		return nil, err
-	}
-
-	tf.SetStdout(os.Stdout)
-
-	ctx := context.Background()
-	err = tf.Init(ctx, tfexec.Upgrade(false))
-	if err != nil {
-		return nil, err
-	}
-
-	tfoutput, err := tf.Output(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(tfoutput) == 0 {
-		return nil, fmt.Errorf("empty state for: %s, provision that first", component.Name)
-	}
-
-	output := make(map[string]schema.OutputMeta, len(tfoutput))
-	for k, v := range tfoutput {
-		output[k] = schema.OutputMeta{
-			Sensitive: v.Sensitive,
-			Type:      v.Type,
-			Value:     v.Value,
-		}
-	}
-
-	return output, nil
-}
-
 func (e *executor) Plan(component *schema.Component) (bool, error) {
 	log.Debug("plan", "component", component.Name)
 
@@ -143,6 +106,37 @@ func (e *executor) Destroy(component *schema.Component) error {
 	}
 
 	return tf.Destroy(context.Background(), tfexec.VarFile(varsfile))
+}
+
+func (e *executor) Output(component *schema.Component) (map[string]*schema.OutputMeta, error) {
+	log.Debug("output", "component", component.Name)
+
+	tf, err := tfexec.NewTerraform(component.Path, e.config.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	tfoutput, err := tf.Output(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tfoutput) == 0 {
+		return nil, fmt.Errorf("empty state for: %s, provision that first", component.Name)
+	}
+
+	output := make(map[string]*schema.OutputMeta, len(tfoutput))
+	for k, v := range tfoutput {
+		output[k] = &schema.OutputMeta{
+			Sensitive: v.Sensitive,
+			Type:      v.Type,
+			Value:     v.Value,
+		}
+
+		fmt.Println(k, "=", output[k].String())
+	}
+
+	return output, nil
 }
 
 func prepareProvision(component *schema.Component, generateBackend bool) (string, error) {

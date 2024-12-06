@@ -2,6 +2,7 @@ package version
 
 import (
 	"fmt"
+	"runtime"
 	"runtime/debug"
 )
 
@@ -25,4 +26,8 @@ func init() {
 
 func Info() string {
 	return fmt.Sprintf("%s, build %.7s", version, commit)
+}
+
+func InfoEx() string {
+	return fmt.Sprintf("%s on %s/%s", Info(), runtime.GOOS, runtime.GOARCH)
 }

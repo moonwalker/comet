@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"encoding/json"
 	"fmt"
 	"path"
 
@@ -73,12 +72,7 @@ func stateFunc(stacks *Stacks, executor Executor) func(stack, component string) 
 
 		res := map[string]string{}
 		for k, v := range refState {
-			var s string
-			err := json.Unmarshal(v.Value, &s)
-			if err != nil {
-				continue
-			}
-			res[k] = s
+			res[k] = v.String()
 		}
 
 		return res

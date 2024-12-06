@@ -1,7 +1,9 @@
 version: 2
 
 builds:
-  - env:
+  - ldflags:
+      - -s -w -X github.com/moonwalker/comet/internal/version.version={{.Version}}
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
