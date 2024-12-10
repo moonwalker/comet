@@ -39,8 +39,15 @@ func (s *Stack) Valid() bool {
 	return len(s.Name) > 0 && len(s.Components) > 0
 }
 
-func (s *Stack) AddComponent(name, path string, vars map[string]interface{}) *Component {
-	c := &Component{s, name, path, s.Backend, vars}
+func (s *Stack) AddComponent(name, path string, inputs map[string]interface{}, providers map[string]interface{}) *Component {
+	c := &Component{
+		Stack:     s,
+		Name:      name,
+		Path:      path,
+		Backend:   s.Backend,
+		Inputs:    inputs,
+		Providers: providers,
+	}
 	s.Components = append(s.Components, c)
 	return c
 }

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -31,16 +32,17 @@ func PrintStacksList(stacks *schema.Stacks) {
 
 func PrintComponentsList(components []*schema.Component) {
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"component", "path", "vars"})
+	table.SetAutoWrapText(false)
 
+	table.SetHeader([]string{"component", "path", "vars"})
 	slices.SortFunc(components, func(a, b *schema.Component) int {
 		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
 	})
 
 	for _, c := range components {
 		varsList := []string{}
-		for k, v := range c.Vars {
-			varsList = append(varsList, k+"="+v.(string))
+		for k, v := range c.Inputs {
+			varsList = append(varsList, k+"="+fmt.Sprintf("%v", v))
 		}
 
 		table.Append([]string{c.Name, c.Path, strings.Join(varsList, "\n")})

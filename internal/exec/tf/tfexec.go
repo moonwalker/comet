@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 
@@ -18,6 +19,7 @@ var (
 	errCmdNotFound = "command not found: %s"
 	errEmptyState  = "empty state for: %s"
 	backendFile    = "backend.tf.json"
+	providersFile  = "providers.tf"
 	varsFileFmt    = "%s-%s.tfvars.json"
 	planFileFmt    = "%s-%s.planfile"
 )
@@ -132,8 +134,6 @@ func (e *executor) Output(component *schema.Component) (map[string]*schema.Outpu
 			Type:      v.Type,
 			Value:     v.Value,
 		}
-
-		fmt.Println(k, "=", output[k].String())
 	}
 
 	return output, nil
@@ -141,36 +141,108 @@ func (e *executor) Output(component *schema.Component) (map[string]*schema.Outpu
 
 func prepareProvision(component *schema.Component, generateBackend bool) (string, error) {
 	varsfile := fmt.Sprintf(varsFileFmt, component.Stack.Name, component.Name)
-	err := writeJSON(component.Vars, component.Path, varsfile)
+	err := writeJSON(component.Inputs, component.Path, varsfile)
 	if err != nil {
 		return "", err
 	}
 
 	if generateBackend {
-		_, err := writeBackend(component)
+		err := writeBackend(component)
 		if err != nil {
 			return "", err
 		}
 	}
 
+	err = writeProviders(component)
+	if err != nil {
+		return "", err
+	}
+
 	return varsfile, nil
 }
 
-func writeBackend(component *schema.Component) (string, error) {
+func writeBackend(component *schema.Component) error {
 	backend := map[string]interface{}{
 		"terraform": map[string]interface{}{
 			"backend": map[string]interface{}{
-				component.Backend.Type: component.Backend.Data,
+				component.Backend.Type: component.Backend.Config,
 			},
 		},
 	}
 
 	err := writeJSON(backend, component.Path, backendFile)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return backendFile, nil
+	return nil
+}
+
+func writeProviderConfig(i int, pc map[string]interface{}) (string, []string) {
+	sb := strings.Builder{}
+	data := []string{}
+	for k, v := range pc {
+		if strings.HasPrefix(k, "data_") {
+			data = append(data, fmt.Sprintf("%s", v))
+			continue
+		}
+		if k == "alias" && i > 2 {
+			continue
+		}
+		if m, ok := v.(map[string]interface{}); ok {
+			sb.WriteString(strings.Repeat(" ", i))
+			sb.WriteString(fmt.Sprintf("%s {", k))
+			sb.WriteString("\n")
+			pc, _ := writeProviderConfig(i+2, m)
+			sb.WriteString(pc)
+			sb.WriteString(strings.Repeat(" ", i))
+			sb.WriteString("}\n")
+			continue
+		}
+		sb.WriteString(strings.Repeat(" ", i))
+		vs := fmt.Sprintf("%s", v)
+		if strings.HasPrefix(vs, "data.") ||
+			strings.HasPrefix(vs, "module.") ||
+			strings.HasPrefix(vs, "local.") ||
+			strings.HasPrefix(vs, "var.") {
+			sb.WriteString(fmt.Sprintf("%s = %s", k, v))
+		} else {
+			sb.WriteString(fmt.Sprintf(`%s = "%s"`, k, v))
+		}
+		sb.WriteString("\n")
+	}
+	return sb.String(), data
+}
+
+func writeProviders(component *schema.Component) error {
+	if len(component.Providers) == 0 {
+		return nil
+	}
+
+	var data []string
+	sb := strings.Builder{}
+	for k, v := range component.Providers {
+		sb.WriteString(fmt.Sprintf(`provider "%s" {`, k))
+		if m, ok := v.(map[string]interface{}); ok {
+			pc, pd := writeProviderConfig(2, m)
+			if len(pc) > 0 {
+				sb.WriteString("\n")
+				sb.WriteString(pc)
+			}
+			if len(pd) > 0 {
+				data = append(data, pd...)
+			}
+		}
+		sb.WriteString("}\n\n")
+	}
+
+	for _, d := range data {
+		sb.WriteString(d)
+		sb.WriteString("\n")
+	}
+
+	s := strings.TrimSpace(sb.String()) + "\n"
+	return os.WriteFile(path.Join(component.Path, providersFile), []byte(s), 0644)
 }
 
 func writeJSON(v any, dir string, filename string) error {

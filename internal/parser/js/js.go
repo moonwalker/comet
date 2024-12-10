@@ -96,22 +96,36 @@ func (vm *jsinterpreter) registerStack(stack *schema.Stack) func(string) goja.Va
 	}
 }
 
-func (vm *jsinterpreter) registerBackend(stack *schema.Stack) func(t string, data map[string]interface{}) {
-	return func(t string, data map[string]interface{}) {
+func (vm *jsinterpreter) registerBackend(stack *schema.Stack) func(string, map[string]interface{}) {
+	return func(t string, config map[string]interface{}) {
 		log.Debug("register backend", "type", t)
-		stack.Backend = schema.Backend{Type: t, Data: data}
+		stack.Backend = schema.Backend{Type: t, Config: config}
 	}
 }
 
 func (vm *jsinterpreter) registerComponent(stack *schema.Stack) func(string, string, map[string]interface{}) any {
-	return func(name string, source string, vars map[string]interface{}) any {
+	return func(name string, source string, config map[string]interface{}) any {
 		log.Debug("register component", "name", name, "stack", stack.Name)
-		c := stack.AddComponent(name, source, vars)
+
+		inputs := make(map[string]interface{}, 0)
+		providers := make(map[string]interface{}, 0)
+
+		providers, hasproviders := config["providers"].(map[string]interface{})
+		if hasproviders {
+			delete(config, "providers")
+		}
+
+		inputs, hasinputs := config["inputs"].(map[string]interface{})
+		if !hasinputs {
+			inputs = config
+		}
+
+		c := stack.AddComponent(name, source, inputs, providers)
 
 		getfn := func(property string) any {
 			log.Debug("component get proxy", "name", name, "property", property)
 
-			v := c.Vars[property]
+			v := c.Inputs[property]
 			if v == nil {
 				// property reference template
 				v = c.PropertyRef(property)

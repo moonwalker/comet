@@ -26,11 +26,5 @@ func output(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		// b, err := json.MarshalIndent(output, "", "  ")
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-		// log.Info("output", "component", component.Name)
-		// fmt.Println(string(b))
 	})
 }

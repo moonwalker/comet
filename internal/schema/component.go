@@ -9,11 +9,12 @@ import (
 
 type (
 	Component struct {
-		Stack   *Stack                 `json:"stack"`
-		Name    string                 `json:"name"`
-		Path    string                 `json:"path"`
-		Backend Backend                `json:"backend"`
-		Vars    map[string]interface{} `json:"vars"`
+		Stack     *Stack                 `json:"stack"`
+		Name      string                 `json:"name"`
+		Path      string                 `json:"path"`
+		Backend   Backend                `json:"backend"`
+		Inputs    map[string]interface{} `json:"inputs"`
+		Providers map[string]interface{} `json:"providers"`
 	}
 )
 
@@ -36,7 +37,7 @@ func (c *Component) PropertyRef(property string) string {
 	return fmt.Sprintf(`{{ (state "%s" "%s").%s }}`, c.Stack.Name, c.Name, property)
 }
 
-// resolve templates in component backend and vars
+// resolve templates in component
 func (c *Component) ResolveVars(stacks *Stacks, executor Executor) error {
 	tdata := map[string]interface{}{"stack": c.Stack.Name, "component": c.Name}
 
@@ -45,10 +46,13 @@ func (c *Component) ResolveVars(stacks *Stacks, executor Executor) error {
 	}
 
 	// set backend from stack's backend template
-	c.Backend.Data = tpl(c.Stack.Backend.Data, tdata, funcMap)
+	c.Backend.Config = tplmap(c.Stack.Backend.Config, tdata, funcMap)
 
 	// template vars
-	c.Vars = tpl(c.Vars, tdata, funcMap)
+	c.Inputs = tplmap(c.Inputs, tdata, funcMap)
+
+	// template providers
+	c.Providers = tplmap(c.Providers, tdata, funcMap)
 
 	return nil
 }

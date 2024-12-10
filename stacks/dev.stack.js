@@ -22,3 +22,32 @@ const vpc = component('vpc', 'test/modules/vpc', {
   name: `${p1.name}-vpc`,
   id: `${p2.id}-vpc`
 })
+
+const gke = component('gke', 'test/modules/gke', {
+  inputs: {
+    project_id: p1.id
+  }
+})
+
+const google = {
+  data_client_config: `data "google_client_config" "default" {}`
+}
+
+const k8s = {
+  // alias: 'main',
+  host: gke.kube_host,
+  cluster_ca_certificate: gke.kube_cert,
+  token: 'data.google_client_config.default.access_token'
+}
+
+const helm = {
+  kubernetes: k8s
+}
+
+const metsrv = component('metsrv', 'test/modules/kubernetes', {
+  providers: {
+    google: google,
+    kubernetes: k8s,
+    helm: helm
+  }
+})
