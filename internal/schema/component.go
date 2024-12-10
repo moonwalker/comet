@@ -53,8 +53,8 @@ func (c *Component) ResolveVars(stacks *Stacks, executor Executor) error {
 	return nil
 }
 
-func stateFunc(stacks *Stacks, executor Executor) func(stack, component string) map[string]string {
-	return func(stack, component string) map[string]string {
+func stateFunc(stacks *Stacks, executor Executor) func(stack, component string) any {
+	return func(stack, component string) any {
 		refStack, err := stacks.GetStack(stack)
 		if err != nil {
 			return nil

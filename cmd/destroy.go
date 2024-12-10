@@ -21,7 +21,7 @@ func init() {
 }
 
 func destroy(cmd *cobra.Command, args []string) {
-	run(args, func(component *schema.Component, executor schema.Executor) {
+	run(args, true, func(component *schema.Component, executor schema.Executor) {
 		err := executor.Destroy(component)
 		if err != nil {
 			log.Fatal(err)

@@ -21,7 +21,7 @@ func init() {
 }
 
 func apply(cmd *cobra.Command, args []string) {
-	run(args, func(component *schema.Component, executor schema.Executor) {
+	run(args, false, func(component *schema.Component, executor schema.Executor) {
 		err := executor.Apply(component)
 		if err != nil {
 			log.Fatal(err)

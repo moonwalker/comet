@@ -16,6 +16,7 @@ import (
 
 var (
 	errCmdNotFound = "command not found: %s"
+	errEmptyState  = "empty state for: %s"
 	backendFile    = "backend.tf.json"
 	varsFileFmt    = "%s-%s.tfvars.json"
 	planFileFmt    = "%s-%s.planfile"
@@ -121,7 +122,7 @@ func (e *executor) Output(component *schema.Component) (map[string]*schema.Outpu
 	}
 
 	if len(tfoutput) == 0 {
-		return nil, fmt.Errorf("empty state for: %s, provision that first", component.Name)
+		return nil, fmt.Errorf(errEmptyState, component.Name)
 	}
 
 	output := make(map[string]*schema.OutputMeta, len(tfoutput))
