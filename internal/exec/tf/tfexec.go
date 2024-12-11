@@ -2,6 +2,7 @@ package tf
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,7 +20,7 @@ var (
 	errCmdNotFound = "command not found: %s"
 	errEmptyState  = "empty state for: %s"
 	backendFile    = "backend.tf.json"
-	providersFile  = "providers.tf"
+	providersFile  = "providers_gen.tf"
 	varsFileFmt    = "%s-%s.tfvars.json"
 	planFileFmt    = "%s-%s.planfile"
 )
@@ -205,7 +206,12 @@ func writeProviderConfig(i int, pc map[string]interface{}) string {
 			strings.HasPrefix(vs, "var.") {
 			sb.WriteString(fmt.Sprintf("%s = %s", k, v))
 		} else {
-			sb.WriteString(fmt.Sprintf(`%s = "%s"`, k, v))
+			_, err := base64.StdEncoding.DecodeString(vs)
+			if err == nil {
+				sb.WriteString(fmt.Sprintf(`%s = base64decode("%s")`, k, v))
+			} else {
+				sb.WriteString(fmt.Sprintf(`%s = "%s"`, k, v))
+			}
 		}
 		sb.WriteString("\n")
 	}
