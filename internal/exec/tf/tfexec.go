@@ -139,6 +139,8 @@ func (e *executor) Output(component *schema.Component) (map[string]*schema.Outpu
 	return output, nil
 }
 
+// utils
+
 func prepareProvision(component *schema.Component, generateBackend bool) (string, error) {
 	varsfile := fmt.Sprintf(varsFileFmt, component.Stack.Name, component.Name)
 	err := writeJSON(component.Inputs, component.Path, varsfile)
@@ -147,13 +149,13 @@ func prepareProvision(component *schema.Component, generateBackend bool) (string
 	}
 
 	if generateBackend {
-		err := writeBackend(component)
+		err := writeBackendJSON(component)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = writeProviders(component)
+	err = writeProvidersTF(component)
 	if err != nil {
 		return "", err
 	}
@@ -161,7 +163,7 @@ func prepareProvision(component *schema.Component, generateBackend bool) (string
 	return varsfile, nil
 }
 
-func writeBackend(component *schema.Component) error {
+func writeBackendJSON(component *schema.Component) error {
 	backend := map[string]interface{}{
 		"terraform": map[string]interface{}{
 			"backend": map[string]interface{}{
@@ -178,14 +180,10 @@ func writeBackend(component *schema.Component) error {
 	return nil
 }
 
-func writeProviderConfig(i int, pc map[string]interface{}) (string, []string) {
+func writeProviderConfig(i int, pc map[string]interface{}) string {
 	sb := strings.Builder{}
-	data := []string{}
+
 	for k, v := range pc {
-		if strings.HasPrefix(k, "data_") {
-			data = append(data, fmt.Sprintf("%s", v))
-			continue
-		}
 		if k == "alias" && i > 2 {
 			continue
 		}
@@ -193,7 +191,7 @@ func writeProviderConfig(i int, pc map[string]interface{}) (string, []string) {
 			sb.WriteString(strings.Repeat(" ", i))
 			sb.WriteString(fmt.Sprintf("%s {", k))
 			sb.WriteString("\n")
-			pc, _ := writeProviderConfig(i+2, m)
+			pc := writeProviderConfig(i+2, m)
 			sb.WriteString(pc)
 			sb.WriteString(strings.Repeat(" ", i))
 			sb.WriteString("}\n")
@@ -211,33 +209,30 @@ func writeProviderConfig(i int, pc map[string]interface{}) (string, []string) {
 		}
 		sb.WriteString("\n")
 	}
-	return sb.String(), data
+
+	return sb.String()
 }
 
-func writeProviders(component *schema.Component) error {
+func writeProvidersTF(component *schema.Component) error {
 	if len(component.Providers) == 0 {
 		return nil
 	}
 
-	var data []string
 	sb := strings.Builder{}
 	for k, v := range component.Providers {
 		sb.WriteString(fmt.Sprintf(`provider "%s" {`, k))
 		if m, ok := v.(map[string]interface{}); ok {
-			pc, pd := writeProviderConfig(2, m)
+			pc := writeProviderConfig(2, m)
 			if len(pc) > 0 {
 				sb.WriteString("\n")
 				sb.WriteString(pc)
-			}
-			if len(pd) > 0 {
-				data = append(data, pd...)
 			}
 		}
 		sb.WriteString("}\n\n")
 	}
 
-	for _, d := range data {
-		sb.WriteString(d)
+	for _, line := range component.Stack.Appends["providers"] {
+		sb.WriteString(line)
 		sb.WriteString("\n")
 	}
 

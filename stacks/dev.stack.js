@@ -29,9 +29,7 @@ const gke = component('gke', 'test/modules/gke', {
   }
 })
 
-const google = {
-  data_client_config: `data "google_client_config" "default" {}`
-}
+append('providers', [`data "google_client_config" "default" {}`])
 
 const k8s = {
   // alias: 'main',
@@ -46,7 +44,7 @@ const helm = {
 
 const metsrv = component('metsrv', 'test/modules/kubernetes', {
   providers: {
-    google: google,
+    // google: {},
     kubernetes: k8s,
     helm: helm
   }

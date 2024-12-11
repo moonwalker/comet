@@ -15,11 +15,12 @@ const (
 
 type (
 	Stack struct {
-		Path       string       `json:"path"`
-		Type       string       `json:"type"`
-		Name       string       `json:"name"`
-		Backend    Backend      `json:"backend"`
-		Components []*Component `json:"components"`
+		Path       string              `json:"path"`
+		Type       string              `json:"type"`
+		Name       string              `json:"name"`
+		Backend    Backend             `json:"backend"`
+		Components []*Component        `json:"components"`
+		Appends    map[string][]string `json:"appends"`
 	}
 
 	Stacks struct {
@@ -32,6 +33,7 @@ func NewStack(path string, t string) *Stack {
 		Path:       path,
 		Type:       t,
 		Components: make([]*Component, 0),
+		Appends:    make(map[string][]string, 0),
 	}
 }
 

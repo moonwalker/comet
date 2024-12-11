@@ -50,6 +50,7 @@ func (vm *jsinterpreter) Parse(path string) (*schema.Stack, error) {
 	vm.rt.Set("stack", vm.registerStack(stack))
 	vm.rt.Set("backend", vm.registerBackend(stack))
 	vm.rt.Set("component", vm.registerComponent(stack))
+	vm.rt.Set("append", vm.registerAppend(stack))
 
 	src := result.OutputFiles[0].Contents
 	_, err := vm.rt.RunString(string(src))
@@ -135,6 +136,13 @@ func (vm *jsinterpreter) registerComponent(stack *schema.Stack) func(string, str
 		}
 
 		return vm.getProxy(getfn)
+	}
+}
+
+func (vm *jsinterpreter) registerAppend(stack *schema.Stack) func(string, []string) {
+	return func(t string, lines []string) {
+		log.Debug("register append", "type", t, "lines", lines, "stack", stack.Name)
+		stack.Appends[t] = lines
 	}
 }
 
