@@ -46,13 +46,13 @@ func (c *Component) ResolveVars(stacks *Stacks, executor Executor) error {
 	}
 
 	// set backend from stack's backend template
-	c.Backend.Config = tplmap(c.Stack.Backend.Config, tdata, funcMap)
+	c.Backend.Config = tpl(c.Stack.Backend.Config, tdata, funcMap)
 
 	// template vars
-	c.Inputs = tplmap(c.Inputs, tdata, funcMap)
+	c.Inputs = tpl(c.Inputs, tdata, funcMap)
 
 	// template providers
-	c.Providers = tplmap(c.Providers, tdata, funcMap)
+	c.Providers = tpl(c.Providers, tdata, funcMap)
 
 	return nil
 }

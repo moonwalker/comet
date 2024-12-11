@@ -43,6 +43,19 @@ const helm = {
 }
 
 const metsrv = component('metsrv', 'test/modules/kubernetes', {
+  inputs: {
+    values: {
+      sources: ['ingress', 'gateway-httproute'],
+      provider: 'cloudflare',
+      extraArgs: ['--cloudflare-proxied', '123 foo', '456 bar', 'baz'],
+      env: [
+        {
+          name: 'CF_API_TOKEN',
+          value: env.COMET_TEST
+        }
+      ]
+    }
+  },
   providers: {
     // google: {},
     kubernetes: k8s,
