@@ -59,7 +59,7 @@ func (e *executor) Plan(component *schema.Component) (bool, error) {
 		return false, err
 	}
 
-	planfile := fmt.Sprintf(planFileFmt, component.Stack.Name, component.Name)
+	planfile := fmt.Sprintf(planFileFmt, component.Stack, component.Name)
 	return tf.Plan(context.Background(), tfexec.VarFile(varsfile), tfexec.Out(planfile))
 }
 
@@ -143,7 +143,7 @@ func (e *executor) Output(component *schema.Component) (map[string]*schema.Outpu
 // utils
 
 func prepareProvision(component *schema.Component, generateBackend bool) (string, error) {
-	varsfile := fmt.Sprintf(varsFileFmt, component.Stack.Name, component.Name)
+	varsfile := fmt.Sprintf(varsFileFmt, component.Stack, component.Name)
 	err := writeJSON(component.Inputs, component.Path, varsfile)
 	if err != nil {
 		return "", err
@@ -237,7 +237,7 @@ func writeProvidersTF(component *schema.Component) error {
 		sb.WriteString("}\n\n")
 	}
 
-	for _, line := range component.Stack.Appends["providers"] {
+	for _, line := range component.Appends["providers"] {
 		sb.WriteString(line)
 		sb.WriteString("\n")
 	}

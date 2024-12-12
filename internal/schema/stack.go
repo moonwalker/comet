@@ -18,9 +18,10 @@ type (
 		Path       string              `json:"path"`
 		Type       string              `json:"type"`
 		Name       string              `json:"name"`
+		Options    any                 `json:"options"`
 		Backend    Backend             `json:"backend"`
-		Components []*Component        `json:"components"`
 		Appends    map[string][]string `json:"appends"`
+		Components []*Component        `json:"components"`
 	}
 
 	Stacks struct {
@@ -32,8 +33,8 @@ func NewStack(path string, t string) *Stack {
 	return &Stack{
 		Path:       path,
 		Type:       t,
-		Components: make([]*Component, 0),
 		Appends:    make(map[string][]string, 0),
+		Components: make([]*Component, 0),
 	}
 }
 
@@ -43,10 +44,11 @@ func (s *Stack) Valid() bool {
 
 func (s *Stack) AddComponent(name, path string, inputs map[string]interface{}, providers map[string]interface{}) *Component {
 	c := &Component{
-		Stack:     s,
+		Stack:     s.Name,
+		Backend:   s.Backend,
+		Appends:   s.Appends,
 		Name:      name,
 		Path:      path,
-		Backend:   s.Backend,
 		Inputs:    inputs,
 		Providers: providers,
 	}

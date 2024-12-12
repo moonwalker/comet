@@ -29,13 +29,78 @@ go build
 
 ## Usage
 
-```bash
+```
 comet [command] [flags]
 ```
 
 For detailed command documentation, use:
-```bash
+```
 comet --help
+```
+
+## Commands
+
+### `comet version`
+
+**Description:** Print the version.
+
+**Usage:**
+```
+comet version
+```
+
+### `comet plan`
+
+**Description:** Show changes required by the current configuration.
+
+**Usage:**
+```
+comet plan <stack> [component]
+```
+
+### `comet output`
+
+**Description:** Show output values from components.
+
+**Usage:**
+```
+comet output <stack> [component]
+```
+
+### `comet list`
+
+**Description:** List stacks or components.
+
+**Usage:**
+```
+comet list [stack]
+```
+
+### `comet destroy`
+
+**Description:** Destroy previously-created infrastructure.
+
+**Usage:**
+```
+comet destroy <stack> [component]
+```
+
+### `comet clean`
+
+**Description:** Delete Terraform-related folders and files.
+
+**Usage:**
+```
+comet clean <stack> [component]
+```
+
+### `comet apply`
+
+**Description:** Create or update infrastructure.
+
+**Usage:**
+```
+comet apply <stack> [component]
 ```
 
 ## Configuration
@@ -51,12 +116,11 @@ Comet can be configured using `comet.yaml` in your project directory.
 ### Setup
 
 1. Clone the repository
-```bash
+```
 git clone https://github.com/moonwalker/comet.git
 ```
-
 2. Build the project
-```bash
+```
 go build
 ```
 

@@ -3,6 +3,7 @@ module github.com/moonwalker/comet
 go 1.23
 
 require (
+	dario.cat/mergo v1.0.1
 	github.com/1password/onepassword-sdk-go v0.1.5
 	github.com/arsham/figurine v1.3.0
 	github.com/bmatcuk/doublestar/v4 v4.7.1

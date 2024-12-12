@@ -89,10 +89,11 @@ func (vm *jsinterpreter) secretsFunc(ref string) any {
 	return res
 }
 
-func (vm *jsinterpreter) registerStack(stack *schema.Stack) func(string) goja.Value {
-	return func(name string) goja.Value {
-		log.Debug("register stack", "name", name)
+func (vm *jsinterpreter) registerStack(stack *schema.Stack) func(string, map[string]interface{}) goja.Value {
+	return func(name string, options map[string]interface{}) goja.Value {
+		log.Debug("register stack", "name", name, "options", options)
 		stack.Name = name
+		stack.Options = options
 		return vm.rt.ToValue(stack)
 	}
 }

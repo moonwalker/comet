@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"path"
 
+	"dario.cat/mergo"
 	cp "github.com/otiai10/copy"
 )
 
 type (
 	Component struct {
-		Stack     *Stack                 `json:"stack"`
+		Stack     string                 `json:"stack"`
+		Backend   Backend                `json:"backend"`
+		Appends   map[string][]string    `json:"appends"`
 		Name      string                 `json:"name"`
 		Path      string                 `json:"path"`
-		Backend   Backend                `json:"backend"`
 		Inputs    map[string]interface{} `json:"inputs"`
 		Providers map[string]interface{} `json:"providers"`
 	}
@@ -21,7 +23,7 @@ type (
 // copy component to workdir if needed
 func (c *Component) EnsurePath(config *Config) error {
 	if len(config.WorkDir) > 0 {
-		dest := path.Join(config.WorkDir, c.Stack.Name, c.Name)
+		dest := path.Join(config.WorkDir, c.Stack, c.Name)
 		err := cp.Copy(c.Path, dest)
 		if err != nil {
 			return err
@@ -34,25 +36,43 @@ func (c *Component) EnsurePath(config *Config) error {
 
 // property ref template to resolve later
 func (c *Component) PropertyRef(property string) string {
-	return fmt.Sprintf(`{{ (state "%s" "%s").%s }}`, c.Stack.Name, c.Name, property)
+	return fmt.Sprintf(`{{ (state "%s" "%s").%s }}`, c.Stack, c.Name, property)
 }
 
 // resolve templates in component
 func (c *Component) ResolveVars(stacks *Stacks, executor Executor) error {
-	tdata := map[string]interface{}{"stack": c.Stack.Name, "component": c.Name}
+	stack, err := stacks.GetStack(c.Stack)
+	if err != nil {
+		return err
+	}
+
+	tdata := map[string]interface{}{"stack": stack.Name, "component": c.Name}
+	err = mergo.Merge(&tdata, stack.Options)
+	if err != nil {
+		return err
+	}
 
 	funcMap := map[string]interface{}{
 		"state": stateFunc(stacks, executor),
 	}
 
-	// set backend from stack's backend template
-	c.Backend.Config = tpl(c.Stack.Backend.Config, tdata, funcMap)
+	// template backend
+	c.Backend.Config, err = tpl(c.Backend.Config, tdata, funcMap)
+	if err != nil {
+		return err
+	}
 
 	// template vars
-	c.Inputs = tpl(c.Inputs, tdata, funcMap)
+	c.Inputs, err = tpl(c.Inputs, tdata, funcMap)
+	if err != nil {
+		return err
+	}
 
 	// template providers
-	c.Providers = tpl(c.Providers, tdata, funcMap)
+	c.Providers, err = tpl(c.Providers, tdata, funcMap)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
