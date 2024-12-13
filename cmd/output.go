@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/moonwalker/comet/internal/log"
@@ -22,9 +24,14 @@ func init() {
 
 func output(cmd *cobra.Command, args []string) {
 	run(args, false, func(component *schema.Component, executor schema.Executor) {
-		_, err := executor.Output(component)
+		out, err := executor.Output(component)
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		for k, v := range out {
+			s := fmt.Sprintf(`%s = "%s"`, k, v)
+			fmt.Println(s)
 		}
 	})
 }
