@@ -51,6 +51,7 @@ func (vm *jsinterpreter) Parse(path string) (*schema.Stack, error) {
 	vm.rt.Set("backend", vm.registerBackend(stack))
 	vm.rt.Set("component", vm.registerComponent(stack))
 	vm.rt.Set("append", vm.registerAppend(stack))
+	vm.rt.Set("kubeconfig", vm.registerKubeconfig(stack))
 
 	src := result.OutputFiles[0].Contents
 	_, err := vm.rt.RunString(string(src))
@@ -144,6 +145,13 @@ func (vm *jsinterpreter) registerAppend(stack *schema.Stack) func(string, []stri
 	return func(t string, lines []string) {
 		log.Debug("register append", "type", t, "lines", lines, "stack", stack.Name)
 		stack.Appends[t] = lines
+	}
+}
+
+func (vm *jsinterpreter) registerKubeconfig(stack *schema.Stack) func(*schema.Kubeconfig) {
+	return func(kubeconfig *schema.Kubeconfig) {
+		log.Debug("register kubeconfig", "stack", stack.Name)
+		stack.Kubeconfig = kubeconfig
 	}
 }
 

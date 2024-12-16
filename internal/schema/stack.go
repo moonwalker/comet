@@ -22,6 +22,7 @@ type (
 		Backend    Backend             `json:"backend"`
 		Appends    map[string][]string `json:"appends"`
 		Components []*Component        `json:"components"`
+		Kubeconfig *Kubeconfig         `json:"kubeconfig"`
 	}
 
 	Stacks struct {

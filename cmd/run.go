@@ -41,7 +41,7 @@ func run(args []string, reverse bool, cb func(*schema.Component, schema.Executor
 	}
 
 	for _, component := range components {
-		err := component.EnsurePath(config)
+		err := component.EnsurePath(config, true)
 		if err != nil {
 			log.Fatal(err)
 		}

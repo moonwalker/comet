@@ -3,9 +3,7 @@ package schema
 import (
 	"fmt"
 	"path"
-	"path/filepath"
 
-	"dario.cat/mergo"
 	cp "github.com/otiai10/copy"
 )
 
@@ -22,16 +20,17 @@ type (
 )
 
 // copy component to workdir if needed
-func (c *Component) EnsurePath(config *Config) error {
+func (c *Component) EnsurePath(config *Config, copy bool) error {
 	if len(config.WorkDir) > 0 {
 		dest := path.Join(config.WorkDir, c.Stack, c.Name)
-		err := cp.Copy(c.Path, dest)
-		if err != nil {
-			return err
+		if copy {
+			err := cp.Copy(c.Path, dest)
+			if err != nil {
+				return err
+			}
 		}
 		c.Path = dest
 	}
-
 	return nil
 }
 
@@ -42,73 +41,32 @@ func (c *Component) PropertyRef(property string) string {
 
 // resolve templates in component
 func (c *Component) ResolveVars(config *Config, stacks *Stacks, executor Executor) error {
-	stack, err := stacks.GetStack(c.Stack)
-	if err != nil {
-		return err
-	}
-
-	stacksDirAbs, err := filepath.Abs(config.StacksDir)
-	if err != nil {
-		return err
-	}
-
 	tdata := map[string]interface{}{
-		"stacks_dir": stacksDirAbs,
-		"stack":      stack.Name,
-		"component":  c.Name,
-	}
-	err = mergo.Merge(&tdata, stack.Options)
-	if err != nil {
-		return err
+		"component": c.Name,
 	}
 
-	funcMap := map[string]interface{}{
-		"state": stateFunc(stacks, executor),
+	t, err := NewTemplater(config, stacks, executor, c.Stack)
+	if err != nil {
+		return err
 	}
 
 	// template backend
-	c.Backend.Config, err = tpl(c.Backend.Config, tdata, funcMap)
+	c.Backend.Config, err = t.Map(c.Backend.Config, tdata)
 	if err != nil {
 		return err
 	}
 
 	// template vars
-	c.Inputs, err = tpl(c.Inputs, tdata, funcMap)
+	c.Inputs, err = t.Map(c.Inputs, tdata)
 	if err != nil {
 		return err
 	}
 
 	// template providers
-	c.Providers, err = tpl(c.Providers, tdata, funcMap)
+	c.Providers, err = t.Map(c.Providers, tdata)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func stateFunc(stacks *Stacks, executor Executor) func(stack, component string) any {
-	return func(stack, component string) any {
-		refStack, err := stacks.GetStack(stack)
-		if err != nil {
-			return nil
-		}
-
-		refComponent, err := refStack.GetComponent(component)
-		if err != nil {
-			return nil
-		}
-
-		refState, err := executor.Output(refComponent)
-		if err != nil {
-			return nil
-		}
-
-		res := map[string]string{}
-		for k, v := range refState {
-			res[k] = v.String()
-		}
-
-		return res
-	}
 }

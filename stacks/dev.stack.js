@@ -49,3 +49,23 @@ const metsrv = component('metsrv', 'test/modules/kubernetes', {
     helm: helm
   }
 })
+
+kubeconfig({
+  current: 0,
+  clusters: [
+    {
+      context: 'cluster-1-gke-eu',
+      host: '1.2.3.4',
+      cert: 'LS0tL...',
+      exec_command: 'gke-gcloud-auth-plugin',
+      exec_args: [
+        'kubernetes',
+        'cluster',
+        'kubeconfig',
+        'exec-credential',
+        '--version=v1beta1',
+        '--context=default'
+      ]
+    }
+  ]
+})
