@@ -56,7 +56,7 @@ kubeconfig({
     {
       context: 'cluster-1-gke-eu',
       host: '1.2.3.4',
-      cert: 'LS0tL...',
+      cert: 'Zm9vYmFy',
       exec_command: 'gke-gcloud-auth-plugin',
       exec_args: [
         'kubernetes',

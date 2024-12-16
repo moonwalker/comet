@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -11,20 +11,22 @@ import (
 )
 
 var (
-	kubeCmd = &cobra.Command{
-		Use:     "kube [stack]",
-		Short:   "Kubeconfig for stack",
-		Aliases: []string{"kubeconfig"},
-		RunE:    kube,
-		Args:    cobra.ExactArgs(1),
+	save          bool
+	kubeconfigCmd = &cobra.Command{
+		Use:   "kubeconfig [stack]",
+		Short: "Kubeconfig for stack",
+		RunE:  kubeconfig,
+		Args:  cobra.ExactArgs(1),
 	}
 )
 
 func init() {
-	rootCmd.AddCommand(kubeCmd)
+	kubeconfigCmd.Flags().BoolVarP(&save, "save", "s", save, "save kubeconfig")
+
+	rootCmd.AddCommand(kubeconfigCmd)
 }
 
-func kube(cmd *cobra.Command, args []string) error {
+func kubeconfig(cmd *cobra.Command, args []string) error {
 	executor, err := exec.GetExecutor(config)
 	if err != nil {
 		log.Fatal(err)
@@ -40,11 +42,9 @@ func kube(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	kubeconfig, err := stack.Kubeconfig.Render(config, stacks, executor, stack.Name)
-	if err != nil {
-		return err
+	if save {
+		return stack.Kubeconfig.Save(config, stacks, executor, stack.Name)
 	}
 
-	fmt.Println(kubeconfig)
-	return nil
+	return stack.Kubeconfig.Write(os.Stdout, config, stacks, executor, stack.Name)
 }

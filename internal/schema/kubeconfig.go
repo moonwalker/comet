@@ -2,7 +2,15 @@ package schema
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"text/template"
+
+	clientauthentication "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	"github.com/moonwalker/comet/internal/log"
 )
 
 type (
@@ -21,13 +29,38 @@ type (
 	}
 )
 
-const (
-	KubeconfigDefaultApiVersion = "client.authentication.k8s.io/v1beta1"
-)
+func (k *Kubeconfig) Save(config *Config, stacks *Stacks, executor Executor, stackName string) error {
+	pathOptions := clientcmd.NewDefaultPathOptions()
 
-func (k *Kubeconfig) Render(config *Config, stacks *Stacks, executor Executor, stackName string) (string, error) {
+	kubeconfig, err := pathOptions.GetStartingConfig()
+	if err != nil {
+		return err
+	}
+
+	// write out stack's kubeconfig
+	var b bytes.Buffer
+	err = k.Write(&b, config, stacks, executor, stackName)
+	if err != nil {
+		return err
+	}
+
+	// load stack's kubeconfig
+	stackconfig, err := clientcmd.Load(b.Bytes())
+	if err != nil {
+		return err
+	}
+
+	err = mergeKubeconfig(stackconfig, kubeconfig, true)
+	if err != nil {
+		return err
+	}
+
+	return clientcmd.ModifyConfig(pathOptions, *kubeconfig, false)
+}
+
+func (k *Kubeconfig) Write(out io.Writer, config *Config, stacks *Stacks, executor Executor, stackName string) error {
 	if len(k.Clusters) == 0 {
-		return "", nil
+		return nil
 	}
 
 	if k.Current < 0 || k.Current >= len(k.Clusters) {
@@ -36,32 +69,57 @@ func (k *Kubeconfig) Render(config *Config, stacks *Stacks, executor Executor, s
 
 	for _, c := range k.Clusters {
 		if len(c.ExecApiVersion) == 0 {
-			c.ExecApiVersion = KubeconfigDefaultApiVersion
+			c.ExecApiVersion = clientauthentication.SchemeGroupVersion.String()
 		}
 	}
 
 	t, err := NewTemplater(config, stacks, executor, stackName)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	err = t.Any(k, nil)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	tmpl, err := template.New("k").Parse(kubeconfigTemplate)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	var b bytes.Buffer
-	err = tmpl.Execute(&b, k)
-	if err != nil {
-		return "", err
+	return tmpl.Execute(out, k)
+}
+
+// mergeKubeconfig merges a remote cluster's config file with a local config file,
+// assuming that the current context in the remote config file points to the
+// cluster details to add to the local config
+func mergeKubeconfig(remote, local *clientcmdapi.Config, setCurrentContext bool) error {
+	remoteCtx, ok := remote.Contexts[remote.CurrentContext]
+	if !ok {
+		return fmt.Errorf("config has no context entry named %q", remote.CurrentContext)
 	}
 
-	return b.String(), nil
+	remoteCluster, ok := remote.Clusters[remoteCtx.Cluster]
+	if !ok {
+		return fmt.Errorf("config has no cluster entry named %q", remoteCtx.Cluster)
+	}
+
+	remoteAuthInfo, ok := remote.AuthInfos[remoteCtx.AuthInfo]
+	if !ok {
+		return fmt.Errorf("config has no auth entry named %q", remoteCtx.AuthInfo)
+	}
+
+	local.Contexts[remote.CurrentContext] = remoteCtx
+	local.Clusters[remoteCtx.Cluster] = remoteCluster
+	local.AuthInfos[remoteCtx.AuthInfo] = remoteAuthInfo
+
+	if setCurrentContext {
+		log.Debug("setting current kube context to %q", remote.CurrentContext)
+		local.CurrentContext = remote.CurrentContext
+	}
+
+	return nil
 }
 
 const kubeconfigTemplate = `apiVersion: v1
