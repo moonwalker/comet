@@ -46,7 +46,7 @@ func run(args []string, reverse bool, cb func(*schema.Component, schema.Executor
 			log.Fatal(err)
 		}
 
-		err = component.ResolveVars(stacks, executor)
+		err = component.ResolveVars(config, stacks, executor)
 		if err != nil {
 			log.Fatal(err)
 		}

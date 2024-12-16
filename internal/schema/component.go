@@ -3,6 +3,7 @@ package schema
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 
 	"dario.cat/mergo"
 	cp "github.com/otiai10/copy"
@@ -40,13 +41,22 @@ func (c *Component) PropertyRef(property string) string {
 }
 
 // resolve templates in component
-func (c *Component) ResolveVars(stacks *Stacks, executor Executor) error {
+func (c *Component) ResolveVars(config *Config, stacks *Stacks, executor Executor) error {
 	stack, err := stacks.GetStack(c.Stack)
 	if err != nil {
 		return err
 	}
 
-	tdata := map[string]interface{}{"stack": stack.Name, "component": c.Name}
+	stacksDirAbs, err := filepath.Abs(config.StacksDir)
+	if err != nil {
+		return err
+	}
+
+	tdata := map[string]interface{}{
+		"stacks_dir": stacksDirAbs,
+		"stack":      stack.Name,
+		"component":  c.Name,
+	}
 	err = mergo.Merge(&tdata, stack.Options)
 	if err != nil {
 		return err
