@@ -12,8 +12,9 @@ import (
 )
 
 type Templater struct {
-	data    map[string]interface{}
-	funcMap template.FuncMap
+	data       map[string]interface{}
+	funcMap    template.FuncMap
+	failedDeps map[string]string // track failed component dependencies: component -> stack
 }
 
 func NewTemplater(config *Config, stacks *Stacks, executor Executor, stackName string) (*Templater, error) {
@@ -37,12 +38,18 @@ func NewTemplater(config *Config, stacks *Stacks, executor Executor, stackName s
 		return nil, err
 	}
 
-	return &Templater{
-		data: data,
+	templater := &Templater{
+		data:       data,
+		failedDeps: make(map[string]string),
 		funcMap: template.FuncMap{
 			"state": stateFunc(config, stacks, executor),
 		},
-	}, nil
+	}
+
+	// Update state function to track failures
+	templater.funcMap["state"] = stateFuncWithTracking(config, stacks, executor, templater.failedDeps)
+
+	return templater, nil
 }
 
 func (t *Templater) Map(src any, data any) (map[string]interface{}, error) {
@@ -115,6 +122,45 @@ func stateFunc(config *Config, stacks *Stacks, executor Executor) func(stack, co
 		refState, err := executor.Output(refComponent)
 		if err != nil {
 			fmt.Println(err)
+			// Instead of returning nil, return a special marker that indicates remote state should be used
+			return map[string]string{
+				"__remote_state_component__": component,
+				"__remote_state_stack__":     stack,
+			}
+		}
+
+		res := map[string]string{}
+		for k, v := range refState {
+			res[k] = v.String()
+		}
+
+		return res
+	}
+}
+
+// Enhanced state function that tracks failed dependencies
+func stateFuncWithTracking(config *Config, stacks *Stacks, executor Executor, failedDeps map[string]string) func(stack, component string) any {
+	return func(stack, component string) any {
+		refStack, err := stacks.GetStack(stack)
+		if err != nil {
+			return nil
+		}
+
+		refComponent, err := refStack.GetComponent(component)
+		if err != nil {
+			return nil
+		}
+
+		err = refComponent.EnsurePath(config, false)
+		if err != nil {
+			return nil
+		}
+
+		refState, err := executor.Output(refComponent)
+		if err != nil {
+			fmt.Println(err)
+			// Track this failed dependency
+			failedDeps[component] = stack
 			return nil
 		}
 

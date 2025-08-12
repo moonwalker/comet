@@ -9,13 +9,14 @@ import (
 
 type (
 	Component struct {
-		Stack     string                 `json:"stack"`
-		Backend   Backend                `json:"backend"`
-		Appends   map[string][]string    `json:"appends"`
-		Name      string                 `json:"name"`
-		Path      string                 `json:"path"`
-		Inputs    map[string]interface{} `json:"inputs"`
-		Providers map[string]interface{} `json:"providers"`
+		Stack                string                 `json:"stack"`
+		Backend              Backend                `json:"backend"`
+		Appends              map[string][]string    `json:"appends"`
+		Name                 string                 `json:"name"`
+		Path                 string                 `json:"path"`
+		Inputs               map[string]interface{} `json:"inputs"`
+		Providers            map[string]interface{} `json:"providers"`
+		ProviderDependencies map[string]string      `json:"provider_dependencies,omitempty"` // component -> stack mapping for failed dependencies
 	}
 )
 
@@ -66,6 +67,14 @@ func (c *Component) ResolveVars(config *Config, stacks *Stacks, executor Executo
 	c.Providers, err = t.Map(c.Providers, tdata)
 	if err != nil {
 		return err
+	}
+
+	// Capture failed dependencies from the templater
+	if len(t.failedDeps) > 0 {
+		c.ProviderDependencies = make(map[string]string)
+		for comp, stack := range t.failedDeps {
+			c.ProviderDependencies[comp] = stack
+		}
 	}
 
 	return nil

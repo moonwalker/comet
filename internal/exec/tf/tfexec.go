@@ -225,16 +225,39 @@ func writeProvidersTF(component *schema.Component) error {
 	}
 
 	sb := strings.Builder{}
-	for k, v := range component.Providers {
-		sb.WriteString(fmt.Sprintf(`provider "%s" {`, k))
-		if m, ok := v.(map[string]interface{}); ok {
-			pc := writeProviderConfig(2, m)
-			if len(pc) > 0 {
-				sb.WriteString("\n")
-				sb.WriteString(pc)
+
+	// Use captured provider dependencies from component
+	if len(component.ProviderDependencies) > 0 {
+		// Generate enhanced provider configuration with remote state fallbacks
+		generateRemoteStateDataSources(&sb, component.ProviderDependencies, component)
+		generateLocalFallbacks(&sb, component.ProviderDependencies)
+		generateVariableOverrides(&sb, component.ProviderDependencies)
+
+		// Generate providers with enhanced configurations using locals
+		for k, v := range component.Providers {
+			sb.WriteString(fmt.Sprintf(`provider "%s" {`, k))
+			if m, ok := v.(map[string]interface{}); ok {
+				pc := writeProviderConfigWithLocals(2, m, component.ProviderDependencies)
+				if len(pc) > 0 {
+					sb.WriteString("\n")
+					sb.WriteString(pc)
+				}
 			}
+			sb.WriteString("}\n\n")
 		}
-		sb.WriteString("}\n\n")
+	} else {
+		// Use standard provider generation
+		for k, v := range component.Providers {
+			sb.WriteString(fmt.Sprintf(`provider "%s" {`, k))
+			if m, ok := v.(map[string]interface{}); ok {
+				pc := writeProviderConfig(2, m)
+				if len(pc) > 0 {
+					sb.WriteString("\n")
+					sb.WriteString(pc)
+				}
+			}
+			sb.WriteString("}\n\n")
+		}
 	}
 
 	for _, line := range component.Appends["providers"] {
@@ -244,6 +267,131 @@ func writeProvidersTF(component *schema.Component) error {
 
 	s := strings.TrimSpace(sb.String()) + "\n"
 	return os.WriteFile(path.Join(component.Path, providersFile), []byte(s), 0644)
+}
+
+// Generate remote state data sources
+func generateRemoteStateDataSources(sb *strings.Builder, deps map[string]string, component *schema.Component) {
+	sb.WriteString("# Auto-generated remote state data sources for component dependencies\n")
+	for comp := range deps {
+		sb.WriteString(fmt.Sprintf(`data "terraform_remote_state" "%s" {
+  backend = "%s"
+  config = {`, comp, component.Backend.Type))
+
+		sb.WriteString("\n")
+		for k, v := range component.Backend.Config {
+			configValue := fmt.Sprintf("%v", v)
+			// Replace current component name with dependency component name in the path
+			if strings.Contains(configValue, component.Name) {
+				configValue = strings.ReplaceAll(configValue, component.Name, comp)
+			}
+			sb.WriteString(fmt.Sprintf(`    %s = "%s"`, k, configValue))
+			sb.WriteString("\n")
+		}
+		sb.WriteString("  }\n}\n\n")
+	}
+}
+
+// Generate local variables with try() fallbacks
+func generateLocalFallbacks(sb *strings.Builder, deps map[string]string) {
+	sb.WriteString("# Locals with safe fallbacks for component dependencies\n")
+	sb.WriteString("locals {\n")
+	for comp := range deps {
+		sb.WriteString(fmt.Sprintf(`  %s_kube_host = try(
+    data.terraform_remote_state.%s.outputs.kube_host,
+    var.%s_kube_host,
+    "https://127.0.0.1"
+  )
+  %s_kube_cert = try(
+    data.terraform_remote_state.%s.outputs.kube_cert,
+    var.%s_kube_cert,
+    ""
+  )
+`, comp, comp, comp, comp, comp, comp))
+	}
+	sb.WriteString("}\n\n")
+}
+
+// Generate variable overrides for manual configuration
+func generateVariableOverrides(sb *strings.Builder, deps map[string]string) {
+	for comp := range deps {
+		sb.WriteString(fmt.Sprintf(`# Variables for manual override of %s outputs (optional)
+variable "%s_kube_host" {
+  description = "Kubernetes cluster host from %s component (auto-detected from remote state)"
+  type        = string
+  default     = null
+}
+
+variable "%s_kube_cert" {
+  description = "Kubernetes cluster CA certificate from %s component (auto-detected from remote state)"
+  type        = string
+  default     = null
+}
+
+`, comp, comp, comp, comp, comp))
+	}
+}
+
+// Enhanced provider config writer that replaces <no value> with local references
+func writeProviderConfigWithLocals(i int, pc map[string]interface{}, deps map[string]string) string {
+	sb := strings.Builder{}
+
+	for k, v := range pc {
+		if k == "alias" && i > 2 {
+			continue
+		}
+		if m, ok := v.(map[string]interface{}); ok {
+			sb.WriteString(strings.Repeat(" ", i))
+			sb.WriteString(fmt.Sprintf("%s {", k))
+			sb.WriteString("\n")
+			pc := writeProviderConfigWithLocals(i+2, m, deps)
+			sb.WriteString(pc)
+			sb.WriteString(strings.Repeat(" ", i))
+			sb.WriteString("}\n")
+			continue
+		}
+		sb.WriteString(strings.Repeat(" ", i))
+		vs := fmt.Sprintf("%s", v)
+
+		// Replace <no value> with appropriate local references
+		if vs == "<no value>" {
+			if replacement := getLocalReferenceForProperty(k, deps); replacement != "" {
+				sb.WriteString(fmt.Sprintf("%s = %s", k, replacement))
+			} else {
+				// Fallback to null for unknown properties
+				sb.WriteString(fmt.Sprintf("%s = null", k))
+			}
+		} else if strings.HasPrefix(vs, "data.") ||
+			strings.HasPrefix(vs, "module.") ||
+			strings.HasPrefix(vs, "local.") ||
+			strings.HasPrefix(vs, "var.") {
+			sb.WriteString(fmt.Sprintf("%s = %s", k, v))
+		} else {
+			_, err := base64.StdEncoding.DecodeString(vs)
+			if err == nil {
+				sb.WriteString(fmt.Sprintf(`%s = base64decode("%s")`, k, v))
+			} else {
+				sb.WriteString(fmt.Sprintf(`%s = "%s"`, k, v))
+			}
+		}
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
+}
+
+// Get appropriate local reference for common Kubernetes provider properties
+func getLocalReferenceForProperty(propertyName string, deps map[string]string) string {
+	// For now, assume the dependency is 'gke' (most common case)
+	// In a more complete implementation, this would be smarter about detecting which dependency provides which properties
+	for component := range deps {
+		switch propertyName {
+		case "host":
+			return fmt.Sprintf("local.%s_kube_host", component)
+		case "cluster_ca_certificate":
+			return fmt.Sprintf("local.%s_kube_cert", component)
+		}
+	}
+	return ""
 }
 
 func writeJSON(v any, dir string, filename string) error {
