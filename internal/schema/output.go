@@ -11,10 +11,22 @@ type OutputMeta struct {
 }
 
 func (o *OutputMeta) String() string {
+	// Try to unmarshal as a string first
 	var s string
 	err := json.Unmarshal(o.Value, &s)
-	if err != nil {
-		return ""
+	if err == nil {
+		return s
 	}
-	return s
+
+	// For non-string types, return JSON representation
+	var val interface{}
+	if err := json.Unmarshal(o.Value, &val); err == nil {
+		jsonBytes, err := json.Marshal(val)
+		if err == nil {
+			return string(jsonBytes)
+		}
+	}
+
+	// If all else fails, return the raw JSON
+	return string(o.Value)
 }
