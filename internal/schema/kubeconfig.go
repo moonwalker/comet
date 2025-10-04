@@ -2,6 +2,7 @@ package schema
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"text/template"
@@ -20,12 +21,12 @@ type (
 	}
 
 	KubeconfgCluster struct {
-		Context        string   `json:"context"`
-		Host           string   `json:"host"`
-		Cert           string   `json:"cert"`
-		ExecApiVersion string   `json:"exec_apiversion"`
-		ExecCommand    string   `json:"exec_command"`
-		ExecArgs       []string `json:"exec_args"`
+		Context        string      `json:"context"`
+		Host           string      `json:"host"`
+		Cert           string      `json:"cert"`
+		ExecApiVersion string      `json:"exec_apiversion"`
+		ExecCommand    string      `json:"exec_command"`
+		ExecArgs       interface{} `json:"exec_args"` // Can be []string or string (template)
 	}
 )
 
@@ -83,12 +84,48 @@ func (k *Kubeconfig) Write(out io.Writer, config *Config, stacks *Stacks, execut
 		return err
 	}
 
+	// After templating, convert ExecArgs to []string if needed
+	for _, c := range k.Clusters {
+		c.ExecArgs = normalizeExecArgs(c.ExecArgs)
+	}
+
 	tmpl, err := template.New("k").Parse(kubeconfigTemplate)
 	if err != nil {
 		return err
 	}
 
 	return tmpl.Execute(out, k)
+}
+
+// normalizeExecArgs converts ExecArgs to []string regardless of input type
+func normalizeExecArgs(args interface{}) []string {
+	if args == nil {
+		return nil
+	}
+
+	switch v := args.(type) {
+	case []string:
+		return v
+	case []interface{}:
+		result := make([]string, len(v))
+		for i, arg := range v {
+			result[i] = fmt.Sprintf("%v", arg)
+		}
+		return result
+	case string:
+		// If it's a JSON array string, try to unmarshal it
+		var arr []string
+		if err := json.Unmarshal([]byte(v), &arr); err == nil {
+			return arr
+		}
+		// Otherwise return as single element
+		if v != "" {
+			return []string{v}
+		}
+		return nil
+	default:
+		return []string{fmt.Sprintf("%v", v)}
+	}
 }
 
 // mergeKubeconfig merges a remote cluster's config file with a local config file,
