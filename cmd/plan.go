@@ -9,10 +9,10 @@ import (
 
 var (
 	planCmd = &cobra.Command{
-		Use:   "plan <stack> [component]",
+		Use:   "plan <stack> [component...]",
 		Short: "Show changes required by the current configuration",
 		Run:   plan,
-		Args:  cobra.RangeArgs(1, 2),
+		Args:  cobra.MinimumNArgs(1),
 	}
 )
 

@@ -9,10 +9,10 @@ import (
 
 var (
 	applyCmd = &cobra.Command{
-		Use:   "apply <stack> [component]",
+		Use:   "apply <stack> [component...]",
 		Short: "Create or update infrastructure",
 		Run:   apply,
-		Args:  cobra.RangeArgs(1, 2),
+		Args:  cobra.MinimumNArgs(1),
 	}
 )
 

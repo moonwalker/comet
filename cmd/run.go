@@ -25,12 +25,12 @@ func run(args []string, reverse bool, cb func(*schema.Component, schema.Executor
 		log.Fatal(err)
 	}
 
-	var componentName string
-	if len(args) == 2 {
-		componentName = args[1]
+	var componentNames []string
+	if len(args) > 1 {
+		componentNames = args[1:]
 	}
 
-	components, err := stack.GetComponents(componentName)
+	components, err := stack.GetComponents(componentNames)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -67,24 +67,27 @@ func (s *Stack) GetComponent(name string) (*Component, error) {
 	return nil, fmt.Errorf(errComponentNotFound, name, s.Name)
 }
 
-func (s *Stack) GetComponents(filterName string) ([]*Component, error) {
+func (s *Stack) GetComponents(filterNames []string) ([]*Component, error) {
 	if len(s.Components) == 0 {
 		return nil, fmt.Errorf(errComponentsNotFound, s.Name)
 	}
 
 	// no filter provided, return all components
-	if len(filterName) == 0 {
+	if len(filterNames) == 0 {
 		return s.Components, nil
 	}
 
-	// names are unique, so we can use slices.IndexFunc
-	// and return a slice with only one element
-	idx := slices.IndexFunc(s.Components, func(a *Component) bool { return a.Name == filterName })
-	if idx != -1 {
-		return []*Component{s.Components[idx]}, nil
+	// collect all matching components in order
+	var result []*Component
+	for _, filterName := range filterNames {
+		idx := slices.IndexFunc(s.Components, func(a *Component) bool { return a.Name == filterName })
+		if idx == -1 {
+			return nil, fmt.Errorf(errComponentNotFound, filterName, s.Name)
+		}
+		result = append(result, s.Components[idx])
 	}
 
-	return nil, fmt.Errorf(errComponentNotFound, filterName, s.Name)
+	return result, nil
 }
 
 func (s *Stacks) AddStack(stack *Stack) error {

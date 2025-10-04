@@ -9,10 +9,10 @@ import (
 
 var (
 	destroyCmd = &cobra.Command{
-		Use:   "destroy <stack> [component]",
+		Use:   "destroy <stack> [component...]",
 		Short: "Destroy previously-created infrastructure",
 		Run:   destroy,
-		Args:  cobra.RangeArgs(1, 2),
+		Args:  cobra.MinimumNArgs(1),
 	}
 )
 
