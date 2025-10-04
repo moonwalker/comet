@@ -53,6 +53,7 @@ func (e *executor) Plan(component *schema.Component) (bool, error) {
 
 	tf.SetSkipProviderVerify(true)
 	tf.SetStdout(os.Stdout)
+	tf.SetStderr(os.Stderr)
 
 	err = tf.Init(context.Background(), tfexec.Reconfigure(true))
 	if err != nil {
@@ -78,6 +79,7 @@ func (e *executor) Apply(component *schema.Component) error {
 
 	tf.SetSkipProviderVerify(true)
 	tf.SetStdout(os.Stdout)
+	tf.SetStderr(os.Stderr)
 
 	err = tf.Init(context.Background(), tfexec.Reconfigure(true))
 	if err != nil {
@@ -102,6 +104,7 @@ func (e *executor) Destroy(component *schema.Component) error {
 
 	tf.SetSkipProviderVerify(true)
 	tf.SetStdout(os.Stdout)
+	tf.SetStderr(os.Stderr)
 
 	err = tf.Init(context.Background(), tfexec.Reconfigure(true))
 	if err != nil {
