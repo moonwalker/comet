@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"text/template"
 
 	clientauthentication "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
@@ -113,11 +114,17 @@ func normalizeExecArgs(args interface{}) []string {
 		}
 		return result
 	case string:
-		// If it's a JSON array string, try to unmarshal it
+		// Try to parse as JSON array first
 		var arr []string
 		if err := json.Unmarshal([]byte(v), &arr); err == nil {
 			return arr
 		}
+
+		// Check if it's a Go slice string representation: "[item1 item2 item3]"
+		if parsed := parseGoSliceString(v); parsed != nil {
+			return parsed
+		}
+
 		// Otherwise return as single element
 		if v != "" {
 			return []string{v}
@@ -126,6 +133,27 @@ func normalizeExecArgs(args interface{}) []string {
 	default:
 		return []string{fmt.Sprintf("%v", v)}
 	}
+}
+
+// parseGoSliceString parses a Go slice string representation like "[item1 item2 item3]"
+// into a proper []string slice
+func parseGoSliceString(s string) []string {
+	s = strings.TrimSpace(s)
+	if !strings.HasPrefix(s, "[") || !strings.HasSuffix(s, "]") {
+		return nil
+	}
+
+	// Remove brackets
+	s = strings.TrimPrefix(s, "[")
+	s = strings.TrimSuffix(s, "]")
+	s = strings.TrimSpace(s)
+
+	if s == "" {
+		return []string{}
+	}
+
+	// Split by whitespace
+	return strings.Fields(s)
 }
 
 // mergeKubeconfig merges a remote cluster's config file with a local config file,

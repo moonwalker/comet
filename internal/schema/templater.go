@@ -129,9 +129,15 @@ func stateFunc(config *Config, stacks *Stacks, executor Executor) func(stack, co
 			}
 		}
 
-		res := map[string]string{}
+		res := map[string]interface{}{}
 		for k, v := range refState {
-			res[k] = v.String()
+			// Unmarshal to get the actual typed value
+			var val interface{}
+			if err := json.Unmarshal(v.Value, &val); err == nil {
+				res[k] = val
+			} else {
+				res[k] = v.String()
+			}
 		}
 
 		return res
@@ -164,9 +170,15 @@ func stateFuncWithTracking(config *Config, stacks *Stacks, executor Executor, fa
 			return nil
 		}
 
-		res := map[string]string{}
+		res := map[string]interface{}{}
 		for k, v := range refState {
-			res[k] = v.String()
+			// Unmarshal to get the actual typed value
+			var val interface{}
+			if err := json.Unmarshal(v.Value, &val); err == nil {
+				res[k] = val
+			} else {
+				res[k] = v.String()
+			}
 		}
 
 		return res
