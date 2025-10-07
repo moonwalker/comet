@@ -2,46 +2,132 @@
 sidebar_position: 1
 ---
 
-# Tutorial Intro
+# Getting Started with Comet
 
-Let's discover **Docusaurus in less than 5 minutes**.
+Welcome to **Comet** - a cosmic tool for provisioning and managing infrastructure with JavaScript-based configuration.
 
-## Getting Started
+## What is Comet?
 
-Get started by **creating a new site**.
+Comet is a command-line interface (CLI) tool designed to streamline infrastructure provisioning and management. It provides a unified interface for handling infrastructure operations with modern tooling and practices, built on top of Terraform/OpenTofu.
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+## Why Comet?
 
-### What you'll need
+Comet fills the gap between plain Terraform/OpenTofu and heavy enterprise frameworks, offering a pragmatic solution for teams that need DRY infrastructure configurations without the overhead of complex tooling.
 
-- [Node.js](https://nodejs.org/en/download/) version 18.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+### Key Benefits
 
-## Generate a new site
+- **🚀 JavaScript Configuration** - Define infrastructure using a familiar, powerful programming language instead of limited HCL
+- **🔄 Automatic Backend Generation** - Comet generates `backend.tf.json` files automatically based on your stack configuration
+- **🔗 Cross-Stack References** - Simple `state()` template function to reference outputs from other stacks
+- **🔐 Built-in Secrets Management** - Native SOPS integration for encrypted secrets in your configurations
+- **📦 Component Reusability** - Define components once, reuse across environments with different configurations
+- **🎯 Multi-Environment Support** - Manage dev, staging, production, and any other environments from a single codebase
 
-Generate a new Docusaurus site using the **classic template**.
+## Installation
 
-The classic template will automatically be added to your project after you run the command:
+### Prerequisites
 
-```bash
-npm init docusaurus@latest my-website classic
-```
+- Go 1.23 or later
+- Terraform or OpenTofu installed
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
-
-The command also installs all necessary dependencies you need to run Docusaurus.
-
-## Start your site
-
-Run the development server:
+### Building from Source
 
 ```bash
-cd my-website
-npm run start
+git clone https://github.com/moonwalker/comet.git
+cd comet
+go build
 ```
 
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
+This will create a `comet` binary in your current directory. You can move it to a directory in your PATH for easy access.
 
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
+## Quick Start
 
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+### 1. Initialize Your Project
+
+Create a `comet.yaml` file in your project root:
+
+```yaml
+executor: tofu  # or 'terraform'
+```
+
+### 2. Create Your First Stack
+
+Create a stack file at `stacks/dev.stack.js`:
+
+```javascript
+// Define your stack
+stack('dev', {
+  project_name: 'my-app',
+  region: 'us-central1'
+})
+
+// Configure backend
+backend('gcs', {
+  bucket: 'my-terraform-state',
+  prefix: 'comet/{{ .stack }}/{{ .component }}'
+})
+
+// Define a simple component
+const vpc = component('vpc', 'modules/vpc', {
+  cidr_block: '10.0.0.0/16',
+  region: '{{ .settings.region }}'
+})
+```
+
+### 3. Create a Terraform Module
+
+Create a basic module at `modules/vpc/main.tf`:
+
+```hcl
+variable "cidr_block" {
+  type = string
+}
+
+variable "region" {
+  type = string
+}
+
+resource "google_compute_network" "vpc" {
+  name                    = "my-vpc"
+  auto_create_subnetworks = false
+}
+
+output "id" {
+  value = google_compute_network.vpc.id
+}
+```
+
+### 4. Run Comet Commands
+
+```bash
+# List available stacks
+comet list
+
+# Plan changes
+comet plan dev vpc
+
+# Apply changes
+comet apply dev vpc
+
+# View outputs
+comet output dev vpc
+```
+
+## Next Steps
+
+- Learn about [stack configuration](/docs/guides/stacks) and organizing your infrastructure
+- Explore [components and modules](/docs/guides/components)
+- Understand [cross-stack references](/docs/guides/cross-stack-references)
+- Set up [secrets management](/docs/guides/secrets-management)
+- Review [best practices](/docs/advanced/best-practices)
+
+## Getting Help
+
+For detailed command documentation, use:
+
+```bash
+comet --help
+comet <command> --help
+```
+
+Visit our [GitHub repository](https://github.com/moonwalker/comet) to report issues or contribute.

@@ -1,0 +1,8 @@
+{
+  "label": "Guides",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Learn the fundamental concepts of Comet: stacks, components, cross-stack references, secrets management, and more."
+  }
+}
