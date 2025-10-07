@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 
 	"github.com/dop251/goja"
 	"github.com/evanw/esbuild/pkg/api"
@@ -19,11 +20,17 @@ const (
 )
 
 type jsinterpreter struct {
-	rt *goja.Runtime
+	rt                     *goja.Runtime
+	secretsDefaultProvider string
+	secretsDefaultPath     string
 }
 
 func NewInterpreter() (*jsinterpreter, error) {
-	vm := &jsinterpreter{rt: goja.New()}
+	vm := &jsinterpreter{
+		rt:                     goja.New(),
+		secretsDefaultProvider: "sops",
+		secretsDefaultPath:     "secrets.enc.yaml",
+	}
 	vm.rt.SetFieldNameMapper(&jsonTagNamer{})
 	return vm, nil
 }
@@ -47,6 +54,8 @@ func (vm *jsinterpreter) Parse(path string) (*schema.Stack, error) {
 	vm.rt.Set("env", vm.envProxy())
 	vm.rt.Set("envs", vm.envsFunc)
 	vm.rt.Set("secrets", vm.secretsFunc)
+	vm.rt.Set("secretsConfig", vm.secretsConfigFunc)
+	vm.rt.Set("secret", vm.secretFunc)
 	vm.rt.Set("stack", vm.registerStack(stack))
 	vm.rt.Set("backend", vm.registerBackend(stack))
 	vm.rt.Set("component", vm.registerComponent(stack))
@@ -68,17 +77,50 @@ func (vm *jsinterpreter) envProxy() any {
 	})
 }
 
-func (vm *jsinterpreter) envsFunc(key, value string) any {
-	if len(value) == 0 {
-		return os.Getenv(key)
+func (vm *jsinterpreter) envsFunc(args ...goja.Value) any {
+	if len(args) == 0 {
+		return nil
 	}
 
-	err := os.Setenv(key, value)
-	if err != nil {
-		log.Fatal(err)
+	// Check if first argument is an object (bulk mode)
+	if len(args) == 1 {
+		obj := args[0].ToObject(vm.rt)
+		if obj != nil {
+			// Bulk environment variable setting
+			for _, key := range obj.Keys() {
+				value := obj.Get(key)
+				if value != nil && !goja.IsUndefined(value) && !goja.IsNull(value) {
+					err := os.Setenv(key, value.String())
+					if err != nil {
+						log.Fatal(err)
+					}
+				}
+			}
+			return nil
+		}
 	}
 
-	return value
+	// Original single key-value mode
+	if len(args) >= 1 {
+		key := args[0].String()
+
+		// If only key provided, return the value
+		if len(args) == 1 {
+			return os.Getenv(key)
+		}
+
+		// If key and value provided, set it
+		if len(args) >= 2 {
+			value := args[1].String()
+			err := os.Setenv(key, value)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return value
+		}
+	}
+
+	return nil
 }
 
 func (vm *jsinterpreter) secretsFunc(ref string) any {
@@ -88,6 +130,31 @@ func (vm *jsinterpreter) secretsFunc(ref string) any {
 	}
 
 	return res
+}
+
+// secretsConfigFunc allows configuring default secrets provider and path
+func (vm *jsinterpreter) secretsConfigFunc(config map[string]interface{}) {
+	if provider, ok := config["defaultProvider"].(string); ok {
+		vm.secretsDefaultProvider = provider
+	}
+	if path, ok := config["defaultPath"].(string); ok {
+		vm.secretsDefaultPath = path
+	}
+}
+
+// secretFunc is a shorthand version of secretsFunc using configured defaults
+func (vm *jsinterpreter) secretFunc(path string) any {
+	// If path already has a provider prefix, use it as-is
+	if strings.HasPrefix(path, "sops://") || strings.HasPrefix(path, "op://") {
+		return vm.secretsFunc(path)
+	}
+
+	// Support dot notation (e.g., "datadog.api_key" -> "datadog/api_key")
+	path = strings.ReplaceAll(path, ".", "/")
+
+	// Construct full reference using defaults
+	ref := fmt.Sprintf("%s://%s#/%s", vm.secretsDefaultProvider, vm.secretsDefaultPath, path)
+	return vm.secretsFunc(ref)
 }
 
 func (vm *jsinterpreter) registerStack(stack *schema.Stack) func(string, map[string]interface{}) goja.Value {

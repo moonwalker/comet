@@ -9,13 +9,15 @@ Comet is a command-line interface (CLI) tool designed to streamline infrastructu
 ## Features
 
 - **🚀 JavaScript Configuration** - Define infrastructure using a familiar, powerful programming language instead of limited HCL
-- **🔄 Automatic Backend Generation** - Comet generates `backend.tf.json` files automatically based on your stack configuration
+- **✨ Modern DSL Enhancements** - Bulk environment variables and secrets shorthand reduce boilerplate by ~30%
+- **�️ Build Your Own Abstractions** - It's JavaScript! Create your own helper functions for domains, components, tags, etc.
+- **�🔄 Automatic Backend Generation** - Comet generates `backend.tf.json` files automatically based on your stack configuration
 - **🔗 Cross-Stack References** - Simple `state()` template function to reference outputs from other stacks
 - **🔐 Built-in Secrets Management** - Native SOPS integration for encrypted secrets in your configurations
 - **📦 Component Reusability** - Define components once, reuse across environments with different configurations
 - **🎯 Multi-Environment Support** - Manage dev, staging, production, and any other environments from a single codebase
 - **⚡ Terraform/OpenTofu Integration** - Works seamlessly with both Terraform and OpenTofu
-- **🛠 Minimal Abstraction** - Thin wrapper that doesn't hide the underlying IaC tool
+- **�️ Minimal & Unopinionated** - Provides universal primitives, you build team-specific patterns
 - **📝 YAML Configuration** - Simple `comet.yaml` for project-level settings
 - **🌟 Template Support** - Use Go templates in component configurations for dynamic values
 
@@ -91,6 +93,12 @@ git clone https://github.com/moonwalker/comet.git
 cd comet
 go build
 ```
+
+## 💡 It's Just JavaScript!
+
+**Important:** Comet's DSL is a superset of JavaScript. You can create any helper functions, abstractions, or patterns you need - you're not limited to built-in features!
+
+👉 **[Read: It's Just JavaScript!](docs/its-just-javascript.md)** - Learn how to build your own domain helpers, component factories, and more.
 
 ## Usage
 
@@ -241,13 +249,83 @@ append('providers', [
 
 ### Secrets Management
 
+Comet provides built-in SOPS integration with convenient shorthand syntax:
+
 ```javascript
-// Using SOPS for encrypted secrets
-const db = component('database', 'modules/cloudsql', {
+// Configure secrets defaults (optional)
+secretsConfig({
+  defaultProvider: 'sops',
+  defaultPath: 'secrets.enc.yaml'
+})
+
+// Old verbose syntax (still works)
+const db1 = component('database', 'modules/cloudsql', {
   password: secrets('sops://secrets.enc.yaml#/database/password'),
   admin_user: secrets('sops://secrets.enc.yaml#/database/admin_user')
 })
+
+// New shorthand - much cleaner!
+const db2 = component('database', 'modules/cloudsql', {
+  password: secret('database/password'),  // or secret('database.password')
+  admin_user: secret('database.admin_user')
+})
 ```
+
+### Modern DSL Enhancements
+
+Comet includes productivity features that reduce boilerplate by ~30%:
+
+**Bulk Environment Variables:**
+```javascript
+// Set multiple environment variables at once
+envs({
+  AWS_ACCESS_KEY_ID: secret('aws/access_key'),
+  AWS_SECRET_ACCESS_KEY: secret('aws/secret_key'),
+  CLOUDFLARE_API_TOKEN: secret('cloudflare/token')
+})
+```
+
+**Build Your Own Abstractions:**
+
+Since Comet's DSL is JavaScript, you can create any helper functions you need for your team's patterns:
+
+```javascript
+const opts = { domain: 'example.io' }
+
+// Your own domain helpers
+const subdomain = (name) => `${name}.{{ .stack }}.${opts.domain}`
+const fqdn = (name) => `${name}.${opts.domain}`
+
+// Your own component factories
+function k8sApp(name, config) {
+  return component(name, 'modules/k8s-app', {
+    namespace: 'default',
+    replicas: 2,
+    domain: subdomain(name),
+    ...config
+  })
+}
+
+// Your own credential presets
+function setupAWS() {
+  envs({
+    AWS_ACCESS_KEY_ID: secret('aws/access_key'),
+    AWS_SECRET_ACCESS_KEY: secret('aws/secret_key'),
+    AWS_REGION: 'us-east-1'
+  })
+}
+
+// Use them!
+setupAWS()
+const api = k8sApp('api', { 
+  replicas: 3,
+  database_url: db.connection_string 
+})
+```
+
+**Comet stays minimal and unopinionated. You build exactly what you need.**
+
+See [DSL Improvements](docs/dsl-improvements.md) and [Userland Patterns](docs/userland-patterns.md) for complete documentation.
 
 For more examples, see the [docs](https://github.com/moonwalker/comet/tree/main/docs) directory.
 
