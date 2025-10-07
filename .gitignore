@@ -5,6 +5,14 @@ gha-creds-*.json
 gke_gcloud_auth_plugin_cache
 dist
 
+# Compiled binaries
+/comet
+comet-test
+*.exe
+*.dll
+*.so
+*.dylib
+
 .terraform
 *.tfstate
 *.tfstate.*
