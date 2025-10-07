@@ -12,13 +12,13 @@ function HomepageHeader() {
       <div className="container">
         <div className={styles.heroContent}>
           <div className={styles.heroText}>
-            <span className={styles.badge}>🚀 Infrastructure as JavaScript</span>
+            <span className={styles.badge}>🚀 Simple. Powerful. Open.</span>
             <Heading as="h1" className={styles.heroTitle}>
               Infrastructure management made <span className={styles.highlight}>simple</span>
             </Heading>
             <p className={styles.heroSubtitle}>
-              A cosmic tool for provisioning and managing infrastructure with JavaScript-based configuration,
-              automatic backend generation, and built-in secrets management.
+              A cosmic tool for provisioning and managing infrastructure.
+              Define your infra with code, automatic backend generation, and built-in secrets management.
             </p>
             <div className={styles.buttons}>
               <Link
