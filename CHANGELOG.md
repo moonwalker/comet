@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`comet init` command** - Initialize backends and providers without running plan/apply operations. Useful for read-only operations like `comet output` or troubleshooting provider/backend initialization issues.
 - **DSL Improvements** - Two core enhancements to reduce boilerplate by ~30%:
   - Bulk environment variables: `envs({})` accepts objects to set multiple vars at once
   - Secrets path shorthand: New `secret()` function with configurable defaults and dot notation support

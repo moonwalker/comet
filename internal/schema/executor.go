@@ -1,6 +1,7 @@
 package schema
 
 type Executor interface {
+	Init(component *Component) error
 	Plan(component *Component) (bool, error)
 	Apply(component *Component) error
 	Destroy(component *Component) error

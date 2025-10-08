@@ -38,6 +38,26 @@ func NewExecutor(config *schema.Config) (*executor, error) {
 	return &executor{config}, nil
 }
 
+func (e *executor) Init(component *schema.Component) error {
+	log.Debug("init", "component", component.Name)
+
+	_, err := prepareProvision(component, e.config.GenerateBackend)
+	if err != nil {
+		return err
+	}
+
+	tf, err := tfexec.NewTerraform(component.Path, e.config.Command)
+	if err != nil {
+		return err
+	}
+
+	tf.SetSkipProviderVerify(true)
+	tf.SetStdout(os.Stdout)
+	tf.SetStderr(os.Stderr)
+
+	return tf.Init(context.Background(), tfexec.Reconfigure(true))
+}
+
 func (e *executor) Plan(component *schema.Component) (bool, error) {
 	log.Debug("plan", "component", component.Name)
 
