@@ -131,6 +131,20 @@ comet version
 comet plan <stack> [component]
 ```
 
+### `comet init`
+
+**Description:** Initialize backends and providers without running plan/apply operations.
+
+**Usage:**
+```
+comet init <stack> [component]
+```
+
+Useful for:
+- Preparing infrastructure for read-only operations (like `comet output`)
+- Troubleshooting provider/backend initialization issues
+- CI/CD validation pipelines
+
 ### `comet output`
 
 **Description:** Show output values from components.

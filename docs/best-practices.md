@@ -352,13 +352,20 @@ wait
 ```bash
 # Solution: Re-initialize Terraform
 rm -rf .terraform
-comet apply <stack> <component>
+comet init <stack> <component>
+```
+
+**Issue:** "Required plugins are not installed"
+```bash
+# Solution: Initialize providers and backends
+comet init <stack> <component>
 ```
 
 **Issue:** Cross-stack reference returns null
 ```bash
 # Solution: Ensure referenced stack is applied first
 comet apply infra vpc
+comet init app webapp   # Initialize to query outputs
 comet apply app webapp  # Now vpc outputs are available
 ```
 

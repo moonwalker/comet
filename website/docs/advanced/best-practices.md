@@ -378,13 +378,20 @@ jobs:
 **Backend configuration changed:**
 ```bash
 rm -rf .terraform
-comet apply <stack> <component>
+comet init <stack> <component>
+```
+
+**Required plugins are not installed:**
+```bash
+# Initialize providers and backends
+comet init <stack> <component>
 ```
 
 **Cross-stack reference returns null:**
 ```bash
 # Ensure referenced stack is applied first
 comet apply infrastructure vpc
+comet init application webapp   # Initialize to query outputs
 comet apply application webapp
 ```
 

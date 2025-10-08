@@ -93,6 +93,44 @@ comet plan production vpc
 **Output:**
 Shows Terraform plan output with additions, changes, and deletions.
 
+## comet init
+
+Initialize backends and providers without running plan or apply operations. This is useful for setting up the environment before querying outputs or troubleshooting initialization issues.
+
+### Initialize All Components
+
+```bash
+comet init <stack>
+```
+
+**Example:**
+```bash
+comet init dev
+```
+
+### Initialize a Specific Component
+
+```bash
+comet init <stack> <component>
+```
+
+**Example:**
+```bash
+comet init dev vpc
+```
+
+**What it does:**
+- Generates backend configuration files (`backend.tf.json`)
+- Generates provider configuration files (`providers_gen.tf`)
+- Downloads required provider plugins
+- Configures remote state backend
+- Does NOT run plan, apply, or make infrastructure changes
+
+**Use cases:**
+- Before running `comet output` on a fresh checkout
+- Troubleshooting provider/backend initialization issues
+- CI/CD validation pipelines that only need to query infrastructure
+
 ## comet apply
 
 Create or update infrastructure based on your configuration.
@@ -288,6 +326,17 @@ comet apply dev
 
 # 4. Check outputs
 comet output dev
+```
+
+### Read-Only Query (Fresh Checkout)
+
+```bash
+# 1. Initialize backends and providers
+comet init production
+
+# 2. Query infrastructure outputs
+comet output production vpc
+comet output production gke
 ```
 
 ### Updating Infrastructure
