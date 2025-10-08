@@ -1,11 +1,11 @@
-VERSION=v0.4.6
+VERSION=v0.4.7
 
 # Bump patch version, commit, tag, and release
 bump:
 	@echo "Current version: ${VERSION}"
-	@NEW_VERSION=$$(echo ${VERSION} | awk -F. '{$$NF = $$NF + 1;} 1' OFS=.) && \
+	@NEW_VERSION=v0.4.7
 	echo "Bumping to $$NEW_VERSION..." && \
-	sed -i.bak "s/VERSION=.*/VERSION=$$NEW_VERSION/" Makefile && \
+	sed -i.bak "s/VERSION=v0.4.7
 	rm -f Makefile.bak && \
 	git add Makefile && \
 	git commit -m "chore: bump version to $$NEW_VERSION" && \
@@ -16,9 +16,9 @@ bump:
 # Bump minor version (0.x.0)
 bump-minor:
 	@echo "Current version: ${VERSION}"
-	@NEW_VERSION=$$(echo ${VERSION} | awk -F. '{$$2 = $$2 + 1; $$3 = 0;} 1' OFS=.) && \
+	@NEW_VERSION=v0.4.7
 	echo "Bumping to $$NEW_VERSION..." && \
-	sed -i.bak "s/VERSION=.*/VERSION=$$NEW_VERSION/" Makefile && \
+	sed -i.bak "s/VERSION=v0.4.7
 	rm -f Makefile.bak && \
 	git add Makefile && \
 	git commit -m "chore: bump version to $$NEW_VERSION" && \
