@@ -1,14 +1,27 @@
 VERSION=v0.4.6
 
-# Bump version, commit, tag, and release
+# Bump patch version, commit, tag, and release
 bump:
-	@if git diff-index --quiet HEAD --; then \
-		echo "❌ No changes to commit. Update VERSION in Makefile first."; \
-		exit 1; \
-	fi
-	@echo "📦 Bumping to ${VERSION}..."
-	git add -A
-	git commit -m "chore: bump version to ${VERSION}"
-	git tag -a ${VERSION} -m "Release ${VERSION}"
-	git push && git push origin ${VERSION}
-	@echo "✅ Released ${VERSION} - GitHub Action will build and publish"
+	@echo "Current version: ${VERSION}"
+	@NEW_VERSION=$$(echo ${VERSION} | awk -F. '{$$NF = $$NF + 1;} 1' OFS=.) && \
+	echo "Bumping to $$NEW_VERSION..." && \
+	sed -i.bak "s/VERSION=.*/VERSION=$$NEW_VERSION/" Makefile && \
+	rm -f Makefile.bak && \
+	git add Makefile && \
+	git commit -m "chore: bump version to $$NEW_VERSION" && \
+	git tag -a $$NEW_VERSION -m "Release $$NEW_VERSION" && \
+	git push && git push origin $$NEW_VERSION && \
+	echo "✅ Released $$NEW_VERSION - GitHub Action will build and publish"
+
+# Bump minor version (0.x.0)
+bump-minor:
+	@echo "Current version: ${VERSION}"
+	@NEW_VERSION=$$(echo ${VERSION} | awk -F. '{$$2 = $$2 + 1; $$3 = 0;} 1' OFS=.) && \
+	echo "Bumping to $$NEW_VERSION..." && \
+	sed -i.bak "s/VERSION=.*/VERSION=$$NEW_VERSION/" Makefile && \
+	rm -f Makefile.bak && \
+	git add Makefile && \
+	git commit -m "chore: bump version to $$NEW_VERSION" && \
+	git tag -a $$NEW_VERSION -m "Release $$NEW_VERSION" && \
+	git push && git push origin $$NEW_VERSION && \
+	echo "✅ Released $$NEW_VERSION - GitHub Action will build and publish"
