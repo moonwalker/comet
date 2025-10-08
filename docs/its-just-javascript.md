@@ -159,6 +159,63 @@ These are **your patterns** - create exactly what you need:
 3. **[Quick Reference](dsl-quick-reference.md)** - Syntax cheat sheet
 4. **`stacks/_examples/userland-helpers.stack.js`** - Working examples
 
+## TypeScript Support (Automatic)
+
+Comet includes TypeScript definitions for **autocomplete and type checking** in your IDE - but you still write JavaScript!
+
+### How It Works
+
+TypeScript definitions are **automatically generated** the first time you run any Comet command on a stack file. Comet embeds the definitions in the binary and writes `stacks/index.d.ts` on first use.
+
+No setup needed - just add this to your `.stack.js` files:
+
+```javascript
+/// <reference path="./index.d.ts" />
+```
+
+Or enable type checking:
+
+```javascript
+// @ts-check
+/// <reference path="./index.d.ts" />
+```
+
+### Benefits
+
+- ✅ **Autocomplete** for all Comet functions
+- ✅ **Inline documentation** as you type
+- ✅ **Type checking** catches errors before running
+- ✅ **No compilation** - still plain JavaScript
+- ✅ **Better refactoring** in VS Code
+
+### Example
+
+```javascript
+// @ts-check
+/// <reference path="../types/index.d.ts" />
+
+// Autocomplete suggests all options
+secretsConfig({
+  defaultProvider: 'sops',  // IDE knows valid values
+  defaultPath: 'secrets.enc.yaml'
+})
+
+// JSDoc types for your helpers
+/**
+ * @param {string} name
+ * @param {number} [replicas=2]
+ */
+function k8sApp(name, replicas = 2) {
+  return component(name, 'modules/k8s-app', { replicas })
+}
+
+// TypeScript validates parameters
+const api = k8sApp('api', 5)  // ✅ OK
+// const bad = k8sApp()       // ❌ Error: missing name
+```
+
+See `stacks/_examples/with-typescript-support.stack.js` for a complete example.
+
 ## The Bottom Line
 
 **You don't need to wait for Comet to add features. Just write JavaScript!**

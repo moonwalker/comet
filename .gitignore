@@ -25,3 +25,5 @@ comet-test
 backend.tf.json
 
 stacks/_components
+stacks/index.d.ts
+
