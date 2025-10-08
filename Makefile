@@ -9,8 +9,8 @@ tag:
 release-patch:
 	@echo "Current version: ${VERSION}"
 	@echo "Bumping patch version..."
-	@NEW_VERSION=v0.4.5
-	sed -i.bak "s/VERSION=v0.4.5
+	@NEW_VERSION=$$(echo ${VERSION} | awk -F. '{$$NF = $$NF + 1;} 1' OFS=.) && \
+	sed -i.bak "s/VERSION=.*/VERSION=$$NEW_VERSION/" Makefile && \
 	rm Makefile.bak && \
 	git add Makefile && \
 	git commit -m "chore: bump version to $$NEW_VERSION" && \
@@ -22,8 +22,8 @@ release-patch:
 release-minor:
 	@echo "Current version: ${VERSION}"
 	@echo "Bumping minor version..."
-	@NEW_VERSION=v0.4.5
-	sed -i.bak "s/VERSION=v0.4.5
+	@NEW_VERSION=$$(echo ${VERSION} | awk -F. '{$$2 = $$2 + 1; $$3 = 0;} 1' OFS=.) && \
+	sed -i.bak "s/VERSION=.*/VERSION=$$NEW_VERSION/" Makefile && \
 	rm Makefile.bak && \
 	git add Makefile && \
 	git commit -m "chore: bump version to $$NEW_VERSION" && \
@@ -35,8 +35,8 @@ release-minor:
 release-major:
 	@echo "Current version: ${VERSION}"
 	@echo "Bumping major version..."
-	@NEW_VERSION=v0.4.5
-	sed -i.bak "s/VERSION=v0.4.5
+	@NEW_VERSION=$$(echo ${VERSION} | awk -F. '{$$1 = "v" (substr($$1,2) + 1); $$2 = 0; $$3 = 0;} 1' OFS=.) && \
+	sed -i.bak "s/VERSION=.*/VERSION=$$NEW_VERSION/" Makefile && \
 	rm Makefile.bak && \
 	git add Makefile && \
 	git commit -m "chore: bump version to $$NEW_VERSION" && \
