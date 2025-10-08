@@ -106,6 +106,11 @@ go build
 comet [command] [flags]
 ```
 
+### Global Flags
+
+- `--config` - Specify config file (default: `comet.yaml`)
+- `--dir` - Specify stacks directory (default: `stacks`)
+
 For detailed command documentation, use:
 ```
 comet --help
@@ -162,6 +167,17 @@ comet output <stack> [component]
 ```
 comet list [stack]
 ```
+
+### `comet types`
+
+**Description:** Generate TypeScript definitions for IDE support.
+
+**Usage:**
+```
+comet types
+```
+
+Generates `index.d.ts` in your stacks directory, providing autocomplete and type hints when editing stack files in your IDE. Add `/// <reference path="./index.d.ts" />` to your stack files to enable IDE support.
 
 ### `comet destroy`
 

@@ -165,9 +165,13 @@ Comet includes TypeScript definitions for **autocomplete and type checking** in 
 
 ### How It Works
 
-TypeScript definitions are **automatically generated** the first time you run any Comet command on a stack file. Comet embeds the definitions in the binary and writes `stacks/index.d.ts` on first use.
+TypeScript definitions can be generated on-demand using the `comet types` command. Comet embeds the definitions in the binary and writes `stacks/index.d.ts` when you run:
 
-No setup needed - just add this to your `.stack.js` files:
+```bash
+comet types
+```
+
+Then add this to your `.stack.js` files for IDE autocomplete:
 
 ```javascript
 /// <reference path="./index.d.ts" />

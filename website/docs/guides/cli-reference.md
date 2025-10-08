@@ -64,6 +64,42 @@ Components in stack 'dev':
   - redis
 ```
 
+## comet types
+
+Generate TypeScript definitions for IDE support.
+
+```bash
+comet types
+```
+
+**What it does:**
+- Creates `index.d.ts` in your stacks directory
+- Provides autocomplete and type hints in your IDE
+- Enables type checking for your stack files
+
+**Usage in stack files:**
+
+Add this reference to the top of your `.stack.js` files:
+
+```javascript
+/// <reference path="./index.d.ts" />
+```
+
+Or enable type checking:
+
+```javascript
+// @ts-check
+/// <reference path="./index.d.ts" />
+```
+
+**Benefits:**
+- ✅ Autocomplete for all Comet functions
+- ✅ Inline documentation
+- ✅ Type checking catches errors before running
+- ✅ Better refactoring support
+
+See the [TypeScript Support](../guides/stacks.md#typescript-support) section for more details.
+
 ## comet plan
 
 Show what changes will be made by the current configuration without actually applying them.

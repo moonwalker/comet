@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`comet types` command** - Generate TypeScript definitions for IDE support on-demand
+
 ### Fixed
 - Skip parsing TypeScript definition files (`.d.ts`) to prevent parse errors
-- Generate TypeScript definitions once per operation instead of per stack file
+
+### Changed
+- TypeScript definitions are now opt-in via `comet types` instead of auto-generated
 
 ### Added
 - **Config-based environment variables** - Pre-load environment variables from `comet.yaml` before any command runs. Perfect for setting `SOPS_AGE_KEY` and other secrets needed during stack parsing. Supports secret resolution via `op://` and `sops://` prefixes. Shell environment variables take precedence.
