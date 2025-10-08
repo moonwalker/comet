@@ -153,6 +153,30 @@ const db = component('database', 'modules/db', {
 })
 ```
 
+### SOPS AGE Key Setup
+
+SOPS requires the `SOPS_AGE_KEY` to be set **before** stack parsing begins. Use `comet.yaml` to pre-load it:
+
+**DO:** Configure in comet.yaml (recommended)
+```yaml
+# comet.yaml
+env:
+  # Load SOPS AGE key from 1Password before stack parsing
+  SOPS_AGE_KEY: op://ci-cd/sops-age-key/private
+```
+
+**Alternative:** Export in shell
+```bash
+# In your shell profile or CI/CD
+export SOPS_AGE_KEY="AGE-SECRET-KEY-1..."
+```
+
+**Why use comet.yaml?**
+- ✅ Automatic - no manual shell setup needed
+- ✅ Team-consistent - everyone uses the same config
+- ✅ CI/CD friendly - works seamlessly in pipelines
+- ✅ Secure - secrets fetched from 1Password on-demand
+
 ### Use Path-Based Organization
 
 ```yaml
@@ -371,7 +395,12 @@ comet apply app webapp  # Now vpc outputs are available
 
 **Issue:** SOPS decryption fails
 ```bash
-# Solution: Ensure SOPS_AGE_KEY is set
+# Solution 1: Set SOPS_AGE_KEY in comet.yaml (recommended)
+# comet.yaml:
+# env:
+#   SOPS_AGE_KEY: op://ci-cd/sops-age-key/private
+
+# Solution 2: Export in shell
 export SOPS_AGE_KEY="your-age-key"
 comet apply dev
 ```

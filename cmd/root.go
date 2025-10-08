@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/moonwalker/comet/internal/env"
 	"github.com/moonwalker/comet/internal/log"
 	"github.com/moonwalker/comet/internal/schema"
+	"github.com/moonwalker/comet/internal/secrets"
 )
 
 const (
@@ -32,6 +34,7 @@ var (
 func init() {
 	env.Load()
 	cfg.Read(cfgFile, config)
+	loadConfigEnv(config)
 	log.SetLevel(config.LogLevel)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "config file")
@@ -41,6 +44,28 @@ func init() {
 	rootCmd.SetHelpCommand(&cobra.Command{
 		Hidden: true,
 	})
+}
+
+func loadConfigEnv(config *schema.Config) {
+	for key, value := range config.Env {
+		// Skip if already set in shell environment (shell wins)
+		if os.Getenv(key) != "" {
+			continue
+		}
+
+		// Resolve secrets if value starts with op:// or sops://
+		if strings.HasPrefix(value, "op://") || strings.HasPrefix(value, "sops://") {
+			resolved, err := secrets.Get(value)
+			if err != nil {
+				log.Error(fmt.Sprintf("failed to resolve env var %s: %v", key, err))
+				continue
+			}
+			os.Setenv(key, resolved)
+		} else {
+			// Plain value
+			os.Setenv(key, value)
+		}
+	}
 }
 
 func Execute() {

@@ -1,3 +1,8 @@
 stacks_dir: stacks
 work_dir: stacks/_components
 generate_backend: false
+
+# Pre-load environment variables before any command runs
+# Perfect for SOPS AGE key which is needed during stack parsing
+env:
+  SOPS_AGE_KEY: op://ci-cd/sops-age-key/private

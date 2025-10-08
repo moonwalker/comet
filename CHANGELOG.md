@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Config-based environment variables** - Pre-load environment variables from `comet.yaml` before any command runs. Perfect for setting `SOPS_AGE_KEY` and other secrets needed during stack parsing. Supports secret resolution via `op://` and `sops://` prefixes. Shell environment variables take precedence.
 - **`comet init` command** - Initialize backends and providers without running plan/apply operations. Useful for read-only operations like `comet output` or troubleshooting provider/backend initialization issues.
 - **DSL Improvements** - Two core enhancements to reduce boilerplate by ~30%:
   - Bulk environment variables: `envs({})` accepts objects to set multiple vars at once

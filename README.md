@@ -345,7 +345,40 @@ For more examples, see the [docs](https://github.com/moonwalker/comet/tree/main/
 
 ## Configuration
 
-Comet can be configured using `comet.yaml` in your project directory. 
+Comet can be configured using `comet.yaml` in your project directory.
+
+### Basic Configuration
+
+```yaml
+# comet.yaml
+stacks_dir: stacks              # Directory containing stack files
+work_dir: stacks/_components    # Working directory for components
+generate_backend: false         # Auto-generate backend.tf.json
+log_level: INFO                 # Log verbosity
+tf_command: tofu                # Use 'tofu' or 'terraform'
+```
+
+### Environment Variables
+
+Pre-load environment variables before any command runs. Perfect for secrets needed during stack parsing (like SOPS_AGE_KEY):
+
+```yaml
+# comet.yaml
+env:
+  # Load SOPS AGE key from 1Password (or other secret manager)
+  SOPS_AGE_KEY: op://ci-cd/sops-age-key/private
+  
+  # Plain values work too
+  TF_LOG: DEBUG
+  AWS_REGION: us-west-2
+```
+
+**Features:**
+- Supports `op://` (1Password) and `sops://` secret resolution
+- Shell environment variables take precedence
+- Loaded before stack parsing begins
+
+See [Best Practices](docs/best-practices.md) for more configuration examples. 
 
 ## Development
 
