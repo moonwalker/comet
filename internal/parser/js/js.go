@@ -3,7 +3,6 @@ package js
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/moonwalker/comet/internal/log"
 	"github.com/moonwalker/comet/internal/schema"
 	"github.com/moonwalker/comet/internal/secrets"
-	"github.com/moonwalker/comet/internal/types"
 )
 
 const (
@@ -38,19 +36,6 @@ func NewInterpreter() (*jsinterpreter, error) {
 }
 
 func (vm *jsinterpreter) Parse(path string) (*schema.Stack, error) {
-	// Ensure TypeScript definitions exist in the stacks directory for IDE support
-	stacksDir := filepath.Dir(path)
-	for stacksDir != "." && filepath.Base(stacksDir) != "stacks" {
-		stacksDir = filepath.Dir(stacksDir)
-	}
-	if filepath.Base(stacksDir) == "stacks" {
-		typesPath := filepath.Join(stacksDir, "index.d.ts")
-		if _, err := os.Stat(typesPath); os.IsNotExist(err) {
-			// Silently write the types file if it doesn't exist
-			_ = os.WriteFile(typesPath, []byte(types.TypeScriptDefinitions), 0644)
-		}
-	}
-
 	result := api.Build(api.BuildOptions{
 		EntryPoints: []string{path},
 		Bundle:      true,
