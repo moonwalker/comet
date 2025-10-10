@@ -381,18 +381,36 @@ Pre-load environment variables before any command runs. Perfect for secrets need
 ```yaml
 # comet.yaml
 env:
-  # Load SOPS AGE key from 1Password (or other secret manager)
-  SOPS_AGE_KEY: op://ci-cd/sops-age-key/private
-  
-  # Plain values work too
+  # Plain values - fast and simple
   TF_LOG: DEBUG
   AWS_REGION: us-west-2
+  
+  # Secret references - convenient but SLOW (3-5s per secret on every command)
+  # SOPS_AGE_KEY: op://ci-cd/sops-age-key/private  # ⚠️ Adds ~4s to EVERY command
 ```
 
 **Features:**
 - Supports `op://` (1Password) and `sops://` secret resolution
 - Shell environment variables take precedence
 - Loaded before stack parsing begins
+
+**⚠️ Performance Warning:**
+
+Secret references (`op://`, `sops://`) are resolved on **EVERY** comet command (plan, apply, list, etc.), which can add 3-5 seconds due to CLI overhead. 
+
+**Recommended approach for frequently-used secrets:**
+
+```bash
+# Set in your shell (one-time cost)
+export SOPS_AGE_KEY=$(op read "op://ci-cd/sops-age-key/private")
+
+# Or add to ~/.bashrc, ~/.zshrc, ~/.config/fish/config.fish, etc.
+```
+
+Only use secret references in `comet.yaml` for:
+- Secrets that change frequently
+- CI/CD environments where shell setup is inconvenient
+- Situations where the ~3-5s overhead is acceptable
 
 See [Best Practices](docs/best-practices.md) for more configuration examples. 
 

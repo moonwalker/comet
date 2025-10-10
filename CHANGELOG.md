@@ -7,17 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2025-10-10
+
 ### Added
+- **Debug logging** - Added detailed debug logs for performance profiling of stack parsing, esbuild bundling, and secret resolution. Enable with `log_level: debug` in config or `COMET_LOG_LEVEL=debug` environment variable.
+- **Configuration documentation** - New comprehensive configuration guide in website docs covering all options, environment variables, and performance considerations.
 - **`comet types` command** - Generate TypeScript definitions for IDE support on-demand
 
 ### Fixed
 - Skip parsing TypeScript definition files (`.d.ts`) to prevent parse errors
 
 ### Changed
+- **Performance warning for config-based secrets** - Added warning when using `op://` or `sops://` references in `comet.yaml` env section, as these are resolved on every command and can add 3-5 seconds. Documentation now recommends setting frequently-used secrets in shell environment instead.
 - TypeScript definitions are now opt-in via `comet types` instead of auto-generated
 
 ### Added
-- **Config-based environment variables** - Pre-load environment variables from `comet.yaml` before any command runs. Perfect for setting `SOPS_AGE_KEY` and other secrets needed during stack parsing. Supports secret resolution via `op://` and `sops://` prefixes. Shell environment variables take precedence.
+- **Config-based environment variables** - Pre-load environment variables from `comet.yaml` before any command runs. Perfect for setting `SOPS_AGE_KEY` and other secrets needed during stack parsing. Supports secret resolution via `op://` and `sops://` prefixes. Shell environment variables take precedence. ⚠️ **Note:** Secret resolution can be slow (3-5s per secret with 1Password CLI); consider setting in shell for frequently-used values.
 - **`comet init` command** - Initialize backends and providers without running plan/apply operations. Useful for read-only operations like `comet output` or troubleshooting provider/backend initialization issues.
 - **DSL Improvements** - Two core enhancements to reduce boilerplate by ~30%:
   - Bulk environment variables: `envs({})` accepts objects to set multiple vars at once
@@ -58,5 +63,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for Terraform and OpenTofu
 - CLI commands: plan, apply, destroy, list, output, clean
 
-[Unreleased]: https://github.com/moonwalker/comet/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/moonwalker/comet/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/moonwalker/comet/releases/tag/v0.5.0
 [0.1.0]: https://github.com/moonwalker/comet/releases/tag/v0.1.0

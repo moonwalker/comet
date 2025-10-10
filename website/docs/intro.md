@@ -115,6 +115,7 @@ comet output dev vpc
 
 ## Next Steps
 
+- Review [configuration options](/docs/guides/configuration) for customizing Comet's behavior
 - Learn about [stack configuration](/docs/guides/stacks) and organizing your infrastructure
 - Explore [components and modules](/docs/guides/components)
 - Understand [cross-stack references](/docs/guides/cross-stack-references)

@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/dop251/goja"
 	"github.com/evanw/esbuild/pkg/api"
@@ -36,11 +37,17 @@ func NewInterpreter() (*jsinterpreter, error) {
 }
 
 func (vm *jsinterpreter) Parse(path string) (*schema.Stack, error) {
+	log.Debug("JS Parse started", "path", path)
+
+	buildStart := time.Now()
 	result := api.Build(api.BuildOptions{
 		EntryPoints: []string{path},
 		Bundle:      true,
 		Write:       false,
 	})
+	buildTime := time.Since(buildStart)
+	log.Debug("esbuild completed", "path", path, "duration", buildTime)
+
 	if len(result.Errors) > 0 {
 		return nil, fmt.Errorf(errBuild, path, result.Errors)
 	}
@@ -50,6 +57,7 @@ func (vm *jsinterpreter) Parse(path string) (*schema.Stack, error) {
 
 	stack := schema.NewStack(path, "js")
 
+	setupStart := time.Now()
 	vm.rt.Set("print", fmt.Println)
 	vm.rt.Set("env", vm.envProxy())
 	vm.rt.Set("envs", vm.envsFunc)
@@ -61,9 +69,15 @@ func (vm *jsinterpreter) Parse(path string) (*schema.Stack, error) {
 	vm.rt.Set("component", vm.registerComponent(stack))
 	vm.rt.Set("append", vm.registerAppend(stack))
 	vm.rt.Set("kubeconfig", vm.registerKubeconfig(stack))
+	setupTime := time.Since(setupStart)
+	log.Debug("Runtime setup completed", "path", path, "duration", setupTime)
 
+	execStart := time.Now()
 	src := result.OutputFiles[0].Contents
 	_, err := vm.rt.RunString(string(src))
+	execTime := time.Since(execStart)
+	log.Debug("Script execution completed", "path", path, "duration", execTime)
+
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +138,13 @@ func (vm *jsinterpreter) envsFunc(args ...goja.Value) any {
 }
 
 func (vm *jsinterpreter) secretsFunc(ref string) any {
+	start := time.Now()
+	log.Debug("secrets.Get called", "ref", ref)
+
 	res, err := secrets.Get(ref)
+	duration := time.Since(start)
+	log.Debug("secrets.Get completed", "ref", ref, "duration", duration)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -144,9 +164,14 @@ func (vm *jsinterpreter) secretsConfigFunc(config map[string]interface{}) {
 
 // secretFunc is a shorthand version of secretsFunc using configured defaults
 func (vm *jsinterpreter) secretFunc(path string) any {
+	start := time.Now()
+	log.Debug("secret called", "path", path)
+
 	// If path already has a provider prefix, use it as-is
 	if strings.HasPrefix(path, "sops://") || strings.HasPrefix(path, "op://") {
-		return vm.secretsFunc(path)
+		result := vm.secretsFunc(path)
+		log.Debug("secret completed", "path", path, "duration", time.Since(start))
+		return result
 	}
 
 	// Support dot notation (e.g., "datadog.api_key" -> "datadog/api_key")
@@ -154,7 +179,9 @@ func (vm *jsinterpreter) secretFunc(path string) any {
 
 	// Construct full reference using defaults
 	ref := fmt.Sprintf("%s://%s#/%s", vm.secretsDefaultProvider, vm.secretsDefaultPath, path)
-	return vm.secretsFunc(ref)
+	result := vm.secretsFunc(ref)
+	log.Debug("secret completed", "path", path, "duration", time.Since(start))
+	return result
 }
 
 func (vm *jsinterpreter) registerStack(stack *schema.Stack) func(string, map[string]interface{}) goja.Value {

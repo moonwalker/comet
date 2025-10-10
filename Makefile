@@ -1,27 +1,27 @@
-VERSION=v0.4.7
+VERSION=v0.5.0
 
-# Bump patch version, commit, tag, and release
-bump:
-	@echo "Current version: ${VERSION}"
-	@NEW_VERSION=v0.4.7
-	echo "Bumping to $$NEW_VERSION..." && \
-	sed -i.bak "s/VERSION=v0.4.7
-	rm -f Makefile.bak && \
-	git add Makefile && \
-	git commit -m "chore: bump version to $$NEW_VERSION" && \
-	git tag -a $$NEW_VERSION -m "Release $$NEW_VERSION" && \
-	git push && git push origin $$NEW_VERSION && \
-	echo "✅ Released $$NEW_VERSION - GitHub Action will build and publish"
+.PHONY: build
+build:
+	@echo "Building comet..."
+	go build -o comet
 
-# Bump minor version (0.x.0)
-bump-minor:
-	@echo "Current version: ${VERSION}"
-	@NEW_VERSION=v0.4.7
-	echo "Bumping to $$NEW_VERSION..." && \
-	sed -i.bak "s/VERSION=v0.4.7
-	rm -f Makefile.bak && \
-	git add Makefile && \
-	git commit -m "chore: bump version to $$NEW_VERSION" && \
-	git tag -a $$NEW_VERSION -m "Release $$NEW_VERSION" && \
-	git push && git push origin $$NEW_VERSION && \
-	echo "✅ Released $$NEW_VERSION - GitHub Action will build and publish"
+.PHONY: release
+release:
+	@echo "Creating release ${VERSION}..."
+	@echo "Make sure CHANGELOG.md is updated!"
+	@read -p "Continue? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		git add -A && \
+		git commit -m "chore: release ${VERSION}" && \
+		git tag -a ${VERSION} -m "Release ${VERSION}" && \
+		git push && git push origin ${VERSION} && \
+		echo "✅ Released ${VERSION} - GitHub Action will build and publish"; \
+	else \
+		echo "❌ Release cancelled"; \
+	fi
+
+.PHONY: website
+website:
+	@echo "Deploying website (triggers on push to main)..."
+	@echo "Website changes will deploy automatically when pushed to main"

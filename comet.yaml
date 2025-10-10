@@ -2,7 +2,14 @@ stacks_dir: stacks
 work_dir: stacks/_components
 generate_backend: false
 
-# Pre-load environment variables before any command runs
-# Perfect for SOPS AGE key which is needed during stack parsing
-env:
-  SOPS_AGE_KEY: op://ci-cd/sops-age-key/private
+# Environment variables loaded before every command
+# NOTE: Shell environment variables take precedence over these
+# WARNING: Using op:// or sops:// references here can be slow (3-5s per secret)
+#          as they are resolved on EVERY comet command (plan, apply, list, etc.)
+#          Consider setting frequently-used secrets in your shell instead:
+#            export SOPS_AGE_KEY=$(op read "op://vault/item/field")
+# env:
+#   EXAMPLE_VAR: "plain-value"
+#   SLOW_SECRET: "op://vault/item/field"  # ⚠️  Adds ~4s to every command!
+
+

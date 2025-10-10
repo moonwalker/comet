@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -50,12 +51,20 @@ func loadConfigEnv(config *schema.Config) {
 	for key, value := range config.Env {
 		// Skip if already set in shell environment (shell wins)
 		if os.Getenv(key) != "" {
+			log.Debug("Env var already set, skipping", "key", key)
 			continue
 		}
 
 		// Resolve secrets if value starts with op:// or sops://
 		if strings.HasPrefix(value, "op://") || strings.HasPrefix(value, "sops://") {
+			start := time.Now()
+			log.Debug("Resolving secret for env var", "key", key, "ref", value)
+			log.Warn(fmt.Sprintf("Loading secret for %s from config - this runs on EVERY command and may be slow (consider setting in shell instead)", key))
+
 			resolved, err := secrets.Get(value)
+			duration := time.Since(start)
+			log.Debug("Secret resolution completed", "key", key, "duration", duration)
+
 			if err != nil {
 				log.Error(fmt.Sprintf("failed to resolve env var %s: %v", key, err))
 				continue
@@ -63,6 +72,7 @@ func loadConfigEnv(config *schema.Config) {
 			os.Setenv(key, resolved)
 		} else {
 			// Plain value
+			log.Debug("Setting env var from config", "key", key)
 			os.Setenv(key, value)
 		}
 	}

@@ -295,6 +295,12 @@ gpg --import private-key.asc
 comet apply production
 ```
 
+:::tip Configuration-based Environment Variables
+
+You can also set environment variables via `comet.yaml`, but be aware of the performance trade-offs. See the [Configuration Guide](/docs/guides/configuration#environment-variables) for details.
+
+:::
+
 ## Troubleshooting
 
 ### "Failed to get data key" Error

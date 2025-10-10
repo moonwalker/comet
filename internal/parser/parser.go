@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/bmatcuk/doublestar/v4"
 
+	"github.com/moonwalker/comet/internal/log"
 	"github.com/moonwalker/comet/internal/parser/js"
 	"github.com/moonwalker/comet/internal/schema"
 )
@@ -27,6 +29,9 @@ var (
 )
 
 func LoadStacks(dir string) (*schema.Stacks, error) {
+	start := time.Now()
+	log.Debug("LoadStacks started", "dir", dir)
+
 	stacks := &schema.Stacks{}
 
 	err := doublestar.GlobWalk(os.DirFS(dir), globpattern, func(p string, d fs.DirEntry) error {
@@ -36,16 +41,24 @@ func LoadStacks(dir string) (*schema.Stacks, error) {
 		}
 
 		path := filepath.Join(dir, p)
+		fileStart := time.Now()
+		log.Debug("Parsing stack file", "path", p)
 
 		parser, err := getParser(path)
 		if err != nil {
 			return err
 		}
+		parserTime := time.Since(fileStart)
+		log.Debug("getParser completed", "path", p, "duration", parserTime)
 
+		parseStart := time.Now()
 		stack, err := parser.Parse(path)
 		if err != nil {
+			log.Debug("Parse failed", "path", p, "error", err, "duration", time.Since(parseStart))
 			return err
 		}
+		parseTime := time.Since(parseStart)
+		log.Debug("Parse completed", "path", p, "duration", parseTime)
 
 		if stack.Valid() {
 			return stacks.AddStack(stack)
@@ -53,6 +66,9 @@ func LoadStacks(dir string) (*schema.Stacks, error) {
 
 		return nil
 	})
+
+	totalTime := time.Since(start)
+	log.Debug("LoadStacks completed", "total_duration", totalTime)
 
 	return stacks, err
 }
