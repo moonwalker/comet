@@ -109,6 +109,10 @@
   background: var(--ifm-background-color);
 }
 
+.features .row {
+  row-gap: 2rem;
+}
+
 .feature {
   padding: 2rem;
   height: 100%;
