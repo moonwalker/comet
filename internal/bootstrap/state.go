@@ -15,14 +15,14 @@ const (
 
 // State represents the bootstrap state
 type State struct {
-	Version string               `json:"version"`
-	LastRun time.Time            `json:"last_run"`
+	Version string                `json:"version"`
+	LastRun time.Time             `json:"last_run"`
 	Steps   map[string]*StepState `json:"steps"`
 }
 
 // StepState represents the state of a single bootstrap step
 type StepState struct {
-	Status      string    `json:"status"`       // completed, failed, skipped
+	Status      string    `json:"status"` // completed, failed, skipped
 	CompletedAt time.Time `json:"completed_at"`
 	Target      string    `json:"target"`
 	Error       string    `json:"error,omitempty"`
