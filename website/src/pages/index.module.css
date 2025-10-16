@@ -113,6 +113,10 @@
   row-gap: 2rem;
 }
 
+.features [class*='col'] {
+  margin-bottom: 2rem;
+}
+
 .feature {
   padding: 2rem;
   height: 100%;
