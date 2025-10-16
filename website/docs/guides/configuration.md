@@ -81,33 +81,60 @@ comet plan dev    # 100ms instead of 4s
 comet apply dev
 ```
 
+**Bootstrap Commands:**
+
+```bash
+# Run all bootstrap steps
+comet bootstrap
+
+# Force re-run all steps (even if already completed)
+comet bootstrap --force
+
+# Check status of all steps
+comet bootstrap status
+# Output:
+#   ✅ check-tools      Completed (just now)
+#   ✅ sops-age-key     Completed (5m ago)
+#   ⚪ gcloud-auth      Not run yet
+
+# Clear bootstrap state (doesn't delete cached files)
+comet bootstrap clear
+```
+
 ### Bootstrap Step Types
 
 #### Secret Steps
 
-Fetch secrets from 1Password or SOPS and save to local files:
+Fetch secrets from 1Password or SOPS and save to local files with proper permissions:
 
 ```yaml
 bootstrap:
   # 1Password secret
   - name: sops-key
     type: secret
-    source: op://vault/item/field
-    target: ~/.config/sops/age/keys.txt
-    mode: "0600"
+    source: op://vault/item/field        # 1Password reference
+    target: ~/.config/sops/age/keys.txt  # Save location (~ expanded)
+    mode: "0600"                         # File permissions (optional, default: 0600)
   
   # SOPS secret
   - name: api-token
     type: secret
-    source: sops://secrets.enc.yaml#/api/token
+    source: sops://secrets.enc.yaml#/api/token  # SOPS file reference
     target: ~/.secrets/api-token
-    mode: "0600"
-    optional: true  # Don't fail if source doesn't exist
+    mode: "0400"                         # Read-only for extra security
+    optional: true                       # Don't fail if source doesn't exist
 ```
+
+**Features:**
+- Automatically creates parent directories
+- Supports both `op://` (1Password) and `sops://` (SOPS) sources
+- Customizable file permissions (default: `0600`)
+- Path expansion (`~/` → home directory)
+- Optional steps won't fail the bootstrap
 
 #### Check Steps
 
-Verify required tools are installed:
+Verify required tools are installed before proceeding:
 
 ```yaml
 bootstrap:
@@ -116,32 +143,69 @@ bootstrap:
     command: op,sops,tofu  # Comma-separated binary names
 ```
 
+**Features:**
+- Checks if binaries exist in PATH using `exec.LookPath`
+- Fast execution (< 1ms)
+- Fails immediately if any binary is missing
+- Best practice: Put check steps first for early failure
+- Example use cases: verify CLI tools, check system requirements
+
 #### Command Steps
 
-Run custom setup commands:
+Run arbitrary shell commands for authentication, initialization, or custom setup:
 
 ```yaml
 bootstrap:
   - name: gcloud-auth
     type: command
     command: gcloud auth application-default login
+    check: gcloud auth application-default print-access-token  # Optional: check if already done
     optional: true  # Don't fail if command errors
+  
+  - name: install-deps
+    type: command
+    command: npm install --global some-tool
 ```
+
+**Features:**
+- Runs commands via `sh -c` (full shell access)
+- Streams stdout/stderr to console
+- Optional `check` command to skip if already done
+- Mark as `optional: true` for non-critical setup
+- Example use cases: cloud authentication, tool installation, git config
 
 ### Bootstrap Features
 
+**Performance & Execution:**
 - **One-time cost**: Slow operations only happen during `comet bootstrap`
-- **Fast commands**: All subsequent commands use cached secrets
+- **30x faster**: Commands run in ~100ms instead of 4+ seconds
 - **Idempotent**: Safe to run multiple times, skips already-completed steps
+- **Sequential execution**: Steps run in order for predictable setup
+- **Early termination**: Fails fast on errors unless marked `optional`
+
+**State Management:**
 - **State tracking**: Tracks completion in `.comet/bootstrap.state`
+- **Smart skipping**: Only re-runs steps if target files are missing
 - **Force refresh**: Use `--force` to re-run all steps
+- **Custom checks**: Optional `check` field to determine if step is needed
+
+**Step Types:**
+- **Secret steps**: Fetch from 1Password (`op://`) or SOPS (`sops://`) and cache to files
+- **Command steps**: Run arbitrary shell commands for authentication, setup, etc.
+- **Check steps**: Verify required binaries/tools are installed
+
+**Configuration:**
+- **Optional steps**: Mark steps as `optional: true` to continue on failure
+- **File permissions**: Customize with `mode` field (default: `0600`)
+- **Path expansion**: Supports `~/` and environment variables in paths
+- **Multiple sources**: Mix 1Password, SOPS, and commands in one workflow
 
 ### Example: Complete Bootstrap Setup
 
 ```yaml
 # comet.yaml
 bootstrap:
-  # 1. Check required tools
+  # 1. Check required tools (fast, fails early)
   - name: check-tools
     type: check
     command: op,sops,tofu
@@ -153,10 +217,11 @@ bootstrap:
     target: ~/.config/sops/age/keys.txt
     mode: "0600"
   
-  # 3. Authenticate with cloud provider
+  # 3. Authenticate with cloud provider (optional)
   - name: gcloud-auth
     type: command
     command: gcloud auth application-default login
+    check: gcloud auth application-default print-access-token
     optional: true
   
   # 4. Fetch additional secrets
@@ -165,6 +230,84 @@ bootstrap:
     source: op://vault/api/credentials
     target: ~/.secrets/api.json
     mode: "0600"
+```
+
+### Advanced Bootstrap Examples
+
+**Multi-cloud authentication:**
+```yaml
+bootstrap:
+  # AWS authentication
+  - name: aws-sso
+    type: command
+    command: aws sso login --profile production
+    check: aws sts get-caller-identity --profile production
+    optional: true
+  
+  # GCP authentication
+  - name: gcp-auth
+    type: command
+    command: gcloud auth application-default login
+    check: gcloud auth application-default print-access-token
+    optional: true
+  
+  # Azure authentication
+  - name: azure-login
+    type: command
+    command: az login
+    optional: true
+```
+
+**Multiple environment secrets:**
+```yaml
+bootstrap:
+  # Development SOPS key
+  - name: sops-dev
+    type: secret
+    source: op://vault/sops-dev/key
+    target: ~/.config/sops/dev-key.txt
+  
+  # Production SOPS key (different key!)
+  - name: sops-prod
+    type: secret
+    source: op://vault/sops-prod/key
+    target: ~/.config/sops/prod-key.txt
+    mode: "0400"  # Read-only for production
+```
+
+**Developer machine setup:**
+```yaml
+bootstrap:
+  # Check all required tools
+  - name: check-dev-tools
+    type: check
+    command: git,op,sops,tofu,gcloud,kubectl,helm
+  
+  # Fetch all secrets
+  - name: sops-key
+    type: secret
+    source: op://vault/sops/key
+    target: ~/.config/sops/age/keys.txt
+  
+  - name: github-token
+    type: secret
+    source: op://vault/github/pat
+    target: ~/.config/gh/token
+    mode: "0600"
+  
+  # Configure git
+  - name: git-config
+    type: command
+    command: |
+      git config --global user.email "dev@company.com"
+      git config --global user.name "Developer"
+    optional: true
+  
+  # Kubernetes setup
+  - name: k8s-config
+    type: command
+    command: gcloud container clusters get-credentials prod-cluster --region us-central1
+    optional: true
 ```
 
 ### Migration from v0.5.0
