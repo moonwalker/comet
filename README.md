@@ -376,27 +376,98 @@ tf_command: tofu                # Use 'tofu' or 'terraform'
 
 ### Environment Variables
 
-Pre-load environment variables before any command runs. Perfect for secrets needed during stack parsing (like SOPS_AGE_KEY):
+Set plain environment variables that are loaded before commands run:
 
 ```yaml
 # comet.yaml
 env:
-  # Plain values - fast and simple
   TF_LOG: DEBUG
   AWS_REGION: us-west-2
-  
-  # Secret references - convenient but SLOW (3-5s per secret on every command)
-  # SOPS_AGE_KEY: op://ci-cd/sops-age-key/private  # ⚠️ Adds ~4s to EVERY command
+  PROJECT_ID: my-project
 ```
 
 **Features:**
-- Supports `op://` (1Password) and `sops://` secret resolution
+- Plain values only (fast startup)
 - Shell environment variables take precedence
 - Loaded before stack parsing begins
 
-**⚠️ Performance Warning:**
+**Note:** The `env` section only supports plain values. For secrets, use the `bootstrap` feature below.
 
-Secret references (`op://`, `sops://`) are resolved on **EVERY** comet command (plan, apply, list, etc.), which can add 3-5 seconds due to CLI overhead. 
+### Bootstrap: One-Time Secret Setup
+
+Bootstrap fetches secrets from 1Password/SOPS and caches them locally. Run once, then all commands are fast!
+
+```yaml
+# comet.yaml
+bootstrap:
+  - name: sops-age-key
+    type: secret
+    source: op://vault/infrastructure/sops-age-key  # Your 1Password path
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
+```
+
+**Usage:**
+
+```bash
+# One-time setup (takes ~4s)
+comet bootstrap
+
+# Check status
+comet bootstrap status
+
+# Now all commands are fast!
+comet plan dev    # 100ms instead of 4s!
+comet apply dev
+```
+
+**Features:**
+- ✅ **One-time cost** - Slow fetch only happens once
+- ✅ **Fast commands** - All subsequent commands use cached secrets
+- ✅ **Idempotent** - Safe to run multiple times
+- ✅ **State tracking** - Knows what's been set up
+- ✅ **Standard location** - Uses SOPS's default key path
+
+**Bootstrap Types:**
+
+```yaml
+bootstrap:
+  # Fetch and cache secrets
+  - name: sops-key
+    type: secret
+    source: op://vault/item/field
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
+  
+  # Check required tools exist
+  - name: check-tools
+    type: check
+    command: op,sops,tofu  # Comma-separated
+  
+  # Run custom commands
+  - name: gcloud-auth
+    type: command
+    command: gcloud auth application-default login
+    optional: true
+```
+
+**Migrating from v0.5.0:**
+
+If you were using `op://` or `sops://` in the `env` section, migrate to `bootstrap`:
+
+```yaml
+# OLD (v0.5.0) - Slow on every command
+env:
+  SOPS_AGE_KEY: op://vault/key/private
+
+# NEW (v0.6.0) - Fast after bootstrap
+bootstrap:
+  - name: sops-key
+    type: secret
+    source: op://vault/key/private
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
+``` 
 
 **Recommended approach for frequently-used secrets:**
 

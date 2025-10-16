@@ -2,14 +2,31 @@ stacks_dir: stacks
 work_dir: stacks/_components
 generate_backend: false
 
-# Environment variables loaded before every command
-# NOTE: Shell environment variables take precedence over these
-# WARNING: Using op:// or sops:// references here can be slow (3-5s per secret)
-#          as they are resolved on EVERY comet command (plan, apply, list, etc.)
-#          Consider setting frequently-used secrets in your shell instead:
-#            export SOPS_AGE_KEY=$(op read "op://vault/item/field")
+# Environment variables (plain values only, fast)
+# Shell environment takes precedence
 # env:
-#   EXAMPLE_VAR: "plain-value"
-#   SLOW_SECRET: "op://vault/item/field"  # ⚠️  Adds ~4s to every command!
+#   TF_LOG: DEBUG
+#   AWS_REGION: us-west-2
 
-
+# Bootstrap: One-time setup for secrets and dependencies
+# Run 'comet bootstrap' to fetch and cache locally
+# This makes all subsequent comet commands fast!
+#
+# bootstrap:
+#   - name: sops-age-key
+#     type: secret
+#     source: op://vault/infrastructure/sops-age-key  # Your 1Password path
+#     target: ~/.config/sops/age/keys.txt
+#     mode: "0600"
+#
+#   # Optional: Check required tools
+#   - name: check-tools
+#     type: check
+#     command: op,sops,tofu  # Comma-separated binary names
+#
+#   # Optional: Run custom setup command
+#   - name: gcloud-auth
+#     type: command
+#     command: gcloud auth application-default login
+#     check: gcloud auth application-default print-access-token
+#     optional: true

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/moonwalker/comet/internal/env"
 	"github.com/moonwalker/comet/internal/log"
 	"github.com/moonwalker/comet/internal/schema"
-	"github.com/moonwalker/comet/internal/secrets"
 )
 
 const (
@@ -55,26 +53,16 @@ func loadConfigEnv(config *schema.Config) {
 			continue
 		}
 
-		// Resolve secrets if value starts with op:// or sops://
+		// Only plain values supported
+		// For secrets, use 'comet bootstrap' to set them up locally
 		if strings.HasPrefix(value, "op://") || strings.HasPrefix(value, "sops://") {
-			start := time.Now()
-			log.Debug("Resolving secret for env var", "key", key, "ref", value)
-			log.Warn(fmt.Sprintf("Loading secret for %s from config - this runs on EVERY command and may be slow (consider setting in shell instead)", key))
-
-			resolved, err := secrets.Get(value)
-			duration := time.Since(start)
-			log.Debug("Secret resolution completed", "key", key, "duration", duration)
-
-			if err != nil {
-				log.Error(fmt.Sprintf("failed to resolve env var %s: %v", key, err))
-				continue
-			}
-			os.Setenv(key, resolved)
-		} else {
-			// Plain value
-			log.Debug("Setting env var from config", "key", key)
-			os.Setenv(key, value)
+			log.Error(fmt.Sprintf("Secret references (op://, sops://) are no longer supported in env section for %s", key))
+			log.Error(fmt.Sprintf("Use 'comet bootstrap' to set up secrets locally. See docs for migration guide."))
+			continue
 		}
+
+		log.Debug("Setting env var from config", "key", key)
+		os.Setenv(key, value)
 	}
 }
 

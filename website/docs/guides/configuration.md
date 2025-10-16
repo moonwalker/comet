@@ -30,15 +30,12 @@ tf_command: tofu                # Use 'tofu' or 'terraform'
 
 ## Environment Variables
 
-Pre-load environment variables before any Comet command runs. This is useful for:
-- Setting secrets needed during stack parsing (like `SOPS_AGE_KEY`)
-- Configuring Terraform behavior (like `TF_LOG`)
-- Setting cloud provider credentials
+Set plain environment variables that are loaded before any Comet command runs:
 
 ```yaml
 # comet.yaml
 env:
-  # Plain values - fast and simple
+  # Plain values only
   TF_LOG: DEBUG
   AWS_REGION: us-west-2
   PROJECT_ID: my-gcp-project
@@ -46,72 +43,146 @@ env:
 
 ### Features
 
-- **Shell precedence**: Environment variables already set in your shell take precedence over config values
-- **Secret resolution**: Supports `op://` (1Password) and `sops://` references
+- **Plain values only**: Fast startup, no secret resolution overhead
+- **Shell precedence**: Environment variables already set in your shell take precedence
 - **Early loading**: Variables are set before stack parsing begins
 
-### Secret References
+:::info Secret Management
 
-You can reference secrets from 1Password or SOPS directly in your config:
-
-```yaml
-env:
-  # 1Password reference
-  SOPS_AGE_KEY: op://vault/sops-age-key/private
-  
-  # SOPS reference
-  API_TOKEN: sops://secrets.enc.yaml#/api/token
-```
-
-:::warning Performance Impact
-
-Secret references (`op://`, `sops://`) are resolved on **EVERY** Comet command, including fast operations like `comet list`. This can add **3-5 seconds** per secret due to CLI overhead from tools like the 1Password CLI.
-
-**Recommended approach for frequently-used secrets:**
-
-```bash
-# Set in your shell once (one-time cost)
-export SOPS_AGE_KEY=$(op read "op://vault/sops-age-key/private")
-
-# Or add to your shell config (~/.bashrc, ~/.zshrc, ~/.config/fish/config.fish)
-```
-
-**Use secret references in `comet.yaml` only when:**
-- Secrets change frequently
-- Shell setup is inconvenient (CI/CD environments)
-- The 3-5 second overhead is acceptable for your workflow
+The `env` section only supports plain values for fast performance. For secrets, use the `bootstrap` feature below.
 
 :::
 
-### Example: CI/CD Environment
+## Bootstrap: One-Time Secret Setup
 
-In CI/CD environments where secrets are provided by the platform, config-based loading might be more convenient despite the overhead:
-
-```yaml
-# comet.yaml - CI/CD focused
-env:
-  # GitHub Actions provides these
-  SOPS_AGE_KEY: op://ci-cd/sops-age-key/private
-  
-  # Plain values from environment
-  TF_LOG: ${{ env.TF_LOG }}
-```
-
-### Example: Local Development
-
-For local development, prefer shell environment variables for speed:
+Bootstrap fetches secrets from 1Password or SOPS and caches them locally. Run it once, then all your commands are fast!
 
 ```yaml
-# comet.yaml - Local development
-env:
-  # Only plain values, no secret resolution
-  TF_LOG: DEBUG
-  AWS_REGION: us-west-2
+# comet.yaml
+bootstrap:
+  - name: sops-age-key
+    type: secret
+    source: op://vault/infrastructure/sops-age-key
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
 ```
+
+**Usage:**
 
 ```bash
-# ~/.bashrc, ~/.zshrc, or ~/.config/fish/config.fish
-export SOPS_AGE_KEY=$(op read "op://vault/sops-age-key/private")
+# One-time setup (takes ~4 seconds)
+comet bootstrap
+
+# Check what's been set up
+comet bootstrap status
+
+# Now all commands are fast!
+comet plan dev    # 100ms instead of 4s
+comet apply dev
+```
+
+### Bootstrap Step Types
+
+#### Secret Steps
+
+Fetch secrets from 1Password or SOPS and save to local files:
+
+```yaml
+bootstrap:
+  # 1Password secret
+  - name: sops-key
+    type: secret
+    source: op://vault/item/field
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
+  
+  # SOPS secret
+  - name: api-token
+    type: secret
+    source: sops://secrets.enc.yaml#/api/token
+    target: ~/.secrets/api-token
+    mode: "0600"
+    optional: true  # Don't fail if source doesn't exist
+```
+
+#### Check Steps
+
+Verify required tools are installed:
+
+```yaml
+bootstrap:
+  - name: check-tools
+    type: check
+    command: op,sops,tofu  # Comma-separated binary names
+```
+
+#### Command Steps
+
+Run custom setup commands:
+
+```yaml
+bootstrap:
+  - name: gcloud-auth
+    type: command
+    command: gcloud auth application-default login
+    optional: true  # Don't fail if command errors
+```
+
+### Bootstrap Features
+
+- **One-time cost**: Slow operations only happen during `comet bootstrap`
+- **Fast commands**: All subsequent commands use cached secrets
+- **Idempotent**: Safe to run multiple times, skips already-completed steps
+- **State tracking**: Tracks completion in `.comet/bootstrap.state`
+- **Force refresh**: Use `--force` to re-run all steps
+
+### Example: Complete Bootstrap Setup
+
+```yaml
+# comet.yaml
+bootstrap:
+  # 1. Check required tools
+  - name: check-tools
+    type: check
+    command: op,sops,tofu
+  
+  # 2. Fetch SOPS key from 1Password
+  - name: sops-key
+    type: secret
+    source: op://vault/infrastructure/sops-age-key
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
+  
+  # 3. Authenticate with cloud provider
+  - name: gcloud-auth
+    type: command
+    command: gcloud auth application-default login
+    optional: true
+  
+  # 4. Fetch additional secrets
+  - name: api-credentials
+    type: secret
+    source: op://vault/api/credentials
+    target: ~/.secrets/api.json
+    mode: "0600"
+```
+
+### Migration from v0.5.0
+
+If you were using `op://` or `sops://` in the `env` section (removed in v0.6.0), migrate to `bootstrap`:
+
+```yaml
+# OLD (v0.5.0) - Slow on every command
+env:
+  SOPS_AGE_KEY: op://vault/key/private
+
+# NEW (v0.6.0) - Fast after bootstrap
+bootstrap:
+  - name: sops-key
+    type: secret
+    source: op://vault/key/private
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
 ```
 
 ## Command-Line Flags
@@ -154,16 +225,26 @@ comet apply dev  # Uses eu-west-1, not us-west-2
 
 ## Best Practices
 
-### Keep Secrets Out of Config
+### Use Bootstrap for Secrets
 
-For frequently-accessed secrets, set them in your shell instead of `comet.yaml`:
+For secrets needed by Comet or Terraform, use the bootstrap feature:
+
+```yaml
+# comet.yaml
+bootstrap:
+  - name: sops-key
+    type: secret
+    source: op://vault/key/private
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
+```
 
 ```bash
-# ✅ Good - one-time cost
-export SOPS_AGE_KEY=$(op read "op://vault/key/private")
+# One-time setup
+comet bootstrap
 
-# ❌ Avoid - 4s penalty on every command
-# comet.yaml with: SOPS_AGE_KEY: op://vault/key/private
+# Now all commands are fast
+comet plan dev  # 100ms, not 4s
 ```
 
 ### Use Version Control

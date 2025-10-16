@@ -63,6 +63,42 @@ creation_rules:
     # pgp: YOUR_GPG_FINGERPRINT
 ```
 
+### 4. Bootstrap SOPS Keys with Comet
+
+If your SOPS encryption key is stored in 1Password, use Comet's bootstrap feature to set it up:
+
+```yaml title="comet.yaml"
+bootstrap:
+  - name: sops-age-key
+    type: secret
+    source: op://vault/infrastructure/sops-age-key
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
+```
+
+Then run once:
+
+```bash
+# One-time setup (fetches key from 1Password)
+comet bootstrap
+
+# Check status
+comet bootstrap status
+
+# Now all Comet commands can decrypt SOPS files automatically
+comet plan dev
+```
+
+:::tip Why Bootstrap?
+
+SOPS needs the `SOPS_AGE_KEY` or `SOPS_AGE_KEY_FILE` environment variable to decrypt files. Instead of fetching this from 1Password on every command (4s overhead), bootstrap caches it to `~/.config/sops/age/keys.txt` once, making all subsequent commands fast.
+
+:::
+    age: age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    # Or for GPG:
+    # pgp: YOUR_GPG_FINGERPRINT
+```
+
 ## Creating Encrypted Secrets
 
 ### 1. Create a Secrets File
@@ -282,7 +318,9 @@ sops secrets.enc.yaml
 
 ## Integration with CI/CD
 
-Provide the decryption key to your CI/CD pipeline:
+### Option 1: Direct Environment Variables
+
+Provide the decryption key directly to your CI/CD pipeline:
 
 ```bash
 # For age
@@ -295,11 +333,25 @@ gpg --import private-key.asc
 comet apply production
 ```
 
-:::tip Configuration-based Environment Variables
+### Option 2: Using Bootstrap
 
-You can also set environment variables via `comet.yaml`, but be aware of the performance trade-offs. See the [Configuration Guide](/docs/guides/configuration#environment-variables) for details.
+If your CI/CD has 1Password CLI available, use bootstrap for consistency:
 
-:::
+```yaml
+# comet.yaml
+bootstrap:
+  - name: sops-key
+    type: secret
+    source: op://vault/sops-key/private
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
+```
+
+```bash
+# In CI/CD pipeline
+comet bootstrap
+comet apply production
+```
 
 ## Troubleshooting
 

@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2025-10-16
+
+### Added
+- **`comet bootstrap` command** - One-time setup for secrets and dependencies. Fetches secrets from 1Password/SOPS and caches them locally, making all subsequent commands fast. No more 3-5 second delays on every command!
+  - `comet bootstrap` - Run bootstrap steps
+  - `comet bootstrap status` - Show what's been set up
+  - `comet bootstrap clear` - Reset state
+  - Bootstrap configuration in `comet.yaml` with support for secret fetching, command execution, and dependency checks
+  - State tracking in `.comet/bootstrap.state`
+  - Idempotent by default with `--force` flag to re-run
+
+### Changed
+- **BREAKING: Removed `op://` and `sops://` support from `env` section** - The `env` section now only supports plain values for fast startup. Use `comet bootstrap` instead for secret management.
+- **`env` section is now fast** - No more slow secret resolution on every command. Plain environment variables only.
+
+### Migration Guide
+If you were using `op://` or `sops://` in your `env` section:
+
+**Before (v0.5.0):**
+```yaml
+env:
+  SOPS_AGE_KEY: op://vault/sops-key/private  # Slow on every command
+```
+
+**After (v0.6.0):**
+```yaml
+bootstrap:
+  - name: sops-key
+    type: secret
+    source: op://vault/sops-key/private
+    target: ~/.config/sops/age/keys.txt
+    mode: "0600"
+
+# Then run once: comet bootstrap
+# All commands are now fast!
+```
+
 ## [0.5.0] - 2025-10-10
 
 ### Added
@@ -63,6 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for Terraform and OpenTofu
 - CLI commands: plan, apply, destroy, list, output, clean
 
-[Unreleased]: https://github.com/moonwalker/comet/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/moonwalker/comet/releases/tag/v0.6.0
 [0.5.0]: https://github.com/moonwalker/comet/releases/tag/v0.5.0
 [0.1.0]: https://github.com/moonwalker/comet/releases/tag/v0.1.0
