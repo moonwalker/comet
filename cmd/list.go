@@ -9,6 +9,8 @@ import (
 )
 
 var (
+	listDetails bool
+	
 	listCmd = &cobra.Command{
 		Use:     "list [stack]",
 		Short:   "List stacks or components",
@@ -20,6 +22,7 @@ var (
 
 func init() {
 	rootCmd.AddCommand(listCmd)
+	listCmd.Flags().BoolVarP(&listDetails, "details", "d", false, "Show full metadata details")
 }
 
 func list(cmd *cobra.Command, args []string) error {
@@ -29,7 +32,7 @@ func list(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(args) == 0 {
-		cli.PrintStacksList(stacks)
+		cli.PrintStacksList(stacks, listDetails)
 		return nil
 	}
 

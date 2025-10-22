@@ -5,6 +5,12 @@ const opts = {
 
 const stage = stack('dev', { opts })
 
+metadata({
+  description: 'Development environment for Comet testing',
+  owner: 'platform-team',
+  tags: ['dev', 'testing', 'non-prod']
+})
+
 backend('gcs', {
   bucket: 'mw-tf-state',
   prefix: `${opts.org}-${opts.common_name}/stacks/{{ .stack }}/{{ .component }}`

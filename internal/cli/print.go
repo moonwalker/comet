@@ -20,11 +20,58 @@ func PrintStyledText(text string) error {
 	return nil
 }
 
-func PrintStacksList(stacks *schema.Stacks) {
+func PrintStacksList(stacks *schema.Stacks, details bool) {
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"stack", "type", "path"})
+	
+	if details {
+		table.SetHeader([]string{"stack", "description", "owner", "tags", "path"})
+	} else {
+		table.SetHeader([]string{"stack", "description", "tags", "path"})
+	}
+	
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment([]int{
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+	})
+	
 	for _, s := range stacks.OrderByName() {
-		table.Append([]string{s.Name, s.Type, s.Path})
+		var desc, owner, tags string
+		
+		if s.Metadata != nil {
+			// Description - truncate if too long
+			desc = s.Metadata.Description
+			if !details && len(desc) > 50 {
+				desc = desc[:47] + "..."
+			}
+			
+			// Owner
+			owner = s.Metadata.Owner
+			
+			// Tags - show first few
+			if len(s.Metadata.Tags) > 0 {
+				maxTags := 3
+				if details {
+					maxTags = len(s.Metadata.Tags)
+				}
+				
+				displayTags := s.Metadata.Tags
+				if len(displayTags) > maxTags {
+					displayTags = displayTags[:maxTags]
+					tags = strings.Join(displayTags, ", ") + "..."
+				} else {
+					tags = strings.Join(displayTags, ", ")
+				}
+			}
+		}
+		
+		if details {
+			table.Append([]string{s.Name, desc, owner, tags, s.Path})
+		} else {
+			table.Append([]string{s.Name, desc, tags, s.Path})
+		}
 	}
 
 	table.Render()

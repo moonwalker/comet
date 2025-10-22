@@ -19,10 +19,18 @@ type (
 		Type       string              `json:"type"`
 		Name       string              `json:"name"`
 		Options    any                 `json:"options"`
+		Metadata   *Metadata           `json:"metadata,omitempty"`
 		Backend    Backend             `json:"backend"`
 		Appends    map[string][]string `json:"appends"`
 		Components []*Component        `json:"components"`
 		Kubeconfig *Kubeconfig         `json:"kubeconfig"`
+	}
+
+	Metadata struct {
+		Description string   `json:"description,omitempty"`
+		Owner       string   `json:"owner,omitempty"`
+		Tags        []string `json:"tags,omitempty"`
+		Custom      any      `json:"custom,omitempty"`
 	}
 
 	Stacks struct {

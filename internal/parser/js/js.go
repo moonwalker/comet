@@ -65,6 +65,7 @@ func (vm *jsinterpreter) Parse(path string) (*schema.Stack, error) {
 	vm.rt.Set("secretsConfig", vm.secretsConfigFunc)
 	vm.rt.Set("secret", vm.secretFunc)
 	vm.rt.Set("stack", vm.registerStack(stack))
+	vm.rt.Set("metadata", vm.registerMetadata(stack))
 	vm.rt.Set("backend", vm.registerBackend(stack))
 	vm.rt.Set("component", vm.registerComponent(stack))
 	vm.rt.Set("append", vm.registerAppend(stack))
@@ -190,6 +191,44 @@ func (vm *jsinterpreter) registerStack(stack *schema.Stack) func(string, map[str
 		stack.Name = name
 		stack.Options = options
 		return vm.rt.ToValue(stack)
+	}
+}
+
+func (vm *jsinterpreter) registerMetadata(stack *schema.Stack) func(map[string]interface{}) {
+	return func(meta map[string]interface{}) {
+		log.Debug("register metadata", "stack", stack.Name)
+		
+		metadata := &schema.Metadata{}
+		
+		if desc, ok := meta["description"].(string); ok {
+			metadata.Description = desc
+		}
+		
+		if owner, ok := meta["owner"].(string); ok {
+			metadata.Owner = owner
+		}
+		
+		if tags, ok := meta["tags"].([]interface{}); ok {
+			metadata.Tags = make([]string, 0, len(tags))
+			for _, tag := range tags {
+				if tagStr, ok := tag.(string); ok {
+					metadata.Tags = append(metadata.Tags, tagStr)
+				}
+			}
+		}
+		
+		// Store any custom fields that aren't standard ones
+		custom := make(map[string]interface{})
+		for k, v := range meta {
+			if k != "description" && k != "owner" && k != "tags" {
+				custom[k] = v
+			}
+		}
+		if len(custom) > 0 {
+			metadata.Custom = custom
+		}
+		
+		stack.Metadata = metadata
 	}
 }
 
