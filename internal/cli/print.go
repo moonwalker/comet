@@ -49,22 +49,22 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 	headers = append(headers, "path")
 
 	table.SetHeader(headers)
-	table.SetAutoWrapText(false)
+	table.SetAutoWrapText(true)
+	table.SetRowLine(true)
+	table.SetColWidth(20)
 
 	for _, s := range stacks.OrderByName() {
 		var desc, owner, tags, custom string
+		path := s.Path
 
 		if s.Metadata != nil {
-			// Description - truncate if too long
+			// Description - no truncation, let table wrap
 			desc = s.Metadata.Description
-			if !details && len(desc) > 50 {
-				desc = desc[:47] + "..."
-			}
 
 			// Owner
 			owner = s.Metadata.Owner
 
-			// Tags - show first few
+			// Tags - show all in details mode
 			if len(s.Metadata.Tags) > 0 {
 				maxTags := 3
 				if details {
@@ -80,7 +80,7 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 				}
 			}
 
-			// Custom fields - show as key=value pairs
+			// Custom fields - show as key=value pairs, one per line
 			if customMap, ok := s.Metadata.Custom.(map[string]any); ok && len(customMap) > 0 {
 				customPairs := make([]string, 0, len(customMap))
 				for k, v := range customMap {
@@ -89,6 +89,11 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 				slices.Sort(customPairs)
 				custom = strings.Join(customPairs, "\n")
 			}
+		}
+
+		// Shorten path for display
+		if strings.HasPrefix(path, "stacks/") {
+			path = strings.TrimPrefix(path, "stacks/")
 		}
 
 		// Build row dynamically
@@ -100,7 +105,7 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 		if hasCustom && details {
 			row = append(row, custom)
 		}
-		row = append(row, s.Path)
+		row = append(row, path)
 
 		table.Append(row)
 	}
