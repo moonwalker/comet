@@ -161,11 +161,38 @@ comet output <stack> [component]
 
 ### `comet list`
 
-**Description:** List stacks or components.
+**Description:** List stacks or components with metadata.
 
 **Usage:**
+```bash
+# List all stacks with basic metadata
+comet list
+
+# List all stacks with full metadata details
+comet list --details
+
+# List components in a specific stack
+comet list <stack>
 ```
-comet list [stack]
+
+**Flags:**
+- `--details, -d` - Show full metadata including owner
+
+**Output:**
+```
+# Default view
++-------+-------------------------------------------+------------------------+---------------------+
+| STACK |                DESCRIPTION                |          TAGS          |        PATH         |
++-------+-------------------------------------------+------------------------+---------------------+
+| dev   | Development environment for Comet testing | dev, testing, non-prod | stacks/dev.stack.js |
++-------+-------------------------------------------+------------------------+---------------------+
+
+# With --details flag
++-------+-------------------------------------------+---------------+------------------------+---------------------+
+| STACK |                DESCRIPTION                |     OWNER     |          TAGS          |        PATH         |
++-------+-------------------------------------------+---------------+------------------------+---------------------+
+| dev   | Development environment for Comet testing | platform-team | dev, testing, non-prod | stacks/dev.stack.js |
++-------+-------------------------------------------+---------------+------------------------+---------------------+
 ```
 
 ### `comet types`
@@ -216,6 +243,39 @@ comet export <stack> [component] -o <output-dir>
 ```
 
 ## Advanced Examples
+
+### Stack Metadata
+
+Add metadata to your stacks for better organization and documentation:
+
+```javascript
+// stacks/production.js
+stack('production', { settings })
+
+metadata({
+  description: 'Production environment with HA configuration',
+  owner: 'platform-team',
+  tags: ['prod', 'critical', 'us-west'],
+  custom: {
+    slack_channel: '#prod-alerts',
+    oncall: 'team-platform'
+  }
+})
+
+backend('gcs', {
+  bucket: 'prod-terraform-state',
+  prefix: 'infra/{{ .stack }}/{{ .component }}'
+})
+```
+
+**View metadata:**
+```bash
+# Show basic metadata
+comet list
+
+# Show full metadata including owner
+comet list --details
+```
 
 ### Multi-Environment Setup
 

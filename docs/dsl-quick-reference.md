@@ -88,6 +88,13 @@ const opts = {
 
 stack('dev', { opts })
 
+// Add stack metadata
+metadata({
+  description: 'Development environment',
+  owner: 'dev-team',
+  tags: ['dev', 'testing']
+})
+
 // Configure secrets
 secretsConfig({
   defaultProvider: 'sops',

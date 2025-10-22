@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2025-10-22
+
+### Added
+- **`metadata()` function** - Add metadata to stacks for better organization
+  - Set description, owner, tags, and custom fields
+  - View in `comet list` with smart truncation
+  - `--details` flag shows full metadata including owner
+  - Example: `metadata({ description: 'Production env', owner: 'platform-team', tags: ['prod'] })`
+
+### Changed
+- **`comet list` output** - Now displays stack metadata by default
+  - Shows description (truncated at 50 chars) and first 3 tags
+  - Use `--details` flag for full metadata including owner
+  - More informative stack listings
+
 ## [0.6.1] - 2025-10-22
 
 ### Fixed
@@ -107,7 +122,8 @@ bootstrap:
 - Support for Terraform and OpenTofu
 - CLI commands: plan, apply, destroy, list, output, clean
 
-[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/moonwalker/comet/releases/tag/v0.6.2
 [0.6.1]: https://github.com/moonwalker/comet/releases/tag/v0.6.1
 [0.6.0]: https://github.com/moonwalker/comet/releases/tag/v0.6.0
 [0.5.0]: https://github.com/moonwalker/comet/releases/tag/v0.5.0

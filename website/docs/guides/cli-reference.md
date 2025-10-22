@@ -28,20 +28,41 @@ comet version 0.1.0
 
 ## comet list
 
-List available stacks or components within a stack.
+List available stacks or components with metadata support.
 
 ### List All Stacks
 
 ```bash
+# List stacks with basic metadata
 comet list
+
+# List stacks with full metadata details
+comet list --details
 ```
 
-**Example Output:**
+**Flags:**
+- `--details, -d` - Show full metadata including owner
+
+**Example Output (default):**
 ```
-Available stacks:
-  - dev
-  - staging
-  - production
++------------+--------------------------------------+--------------------+-------------------------+
+| STACK      | DESCRIPTION                          | TAGS               | PATH                    |
++------------+--------------------------------------+--------------------+-------------------------+
+| dev        | Development environment              | dev, testing       | stacks/dev.stack.js     |
+| staging    | Staging environment for QA           | staging, qa        | stacks/staging.stack.js |
+| production | Production with HA configuration     | prod, critical     | stacks/prod.stack.js    |
++------------+--------------------------------------+--------------------+-------------------------+
+```
+
+**Example Output (--details):**
+```
++------------+--------------------------------------+---------------+--------------------+-------------------------+
+| STACK      | DESCRIPTION                          | OWNER         | TAGS               | PATH                    |
++------------+--------------------------------------+---------------+--------------------+-------------------------+
+| dev        | Development environment              | dev-team      | dev, testing       | stacks/dev.stack.js     |
+| staging    | Staging environment for QA           | qa-team       | staging, qa        | stacks/staging.stack.js |
+| production | Production with HA configuration     | platform-team | prod, critical     | stacks/prod.stack.js    |
++------------+--------------------------------------+---------------+--------------------+-------------------------+
 ```
 
 ### List Components in a Stack

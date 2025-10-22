@@ -26,6 +26,13 @@ stack('dev', {
   region: 'us-central1'
 })
 
+// Add metadata for organization
+metadata({
+  description: 'Development environment for testing',
+  owner: 'dev-team',
+  tags: ['dev', 'testing', 'non-prod']
+})
+
 // Configure the backend
 backend('gcs', {
   bucket: 'my-terraform-state-bucket',
@@ -84,6 +91,60 @@ stack('production', {
   environment: 'production'
 })
 ```
+
+## Stack Metadata
+
+Add metadata to your stacks for better organization and discoverability:
+
+```javascript title="stacks/production.js"
+stack('production', { settings })
+
+metadata({
+  description: 'Production environment with HA configuration',
+  owner: 'platform-team',
+  tags: ['prod', 'critical', 'us-west'],
+  custom: {
+    slack_channel: '#prod-alerts',
+    oncall: 'team-platform',
+    cost_center: 'engineering'
+  }
+})
+```
+
+### Metadata Fields
+
+- **description** (string) - Brief description of the stack's purpose
+- **owner** (string) - Team or person responsible for the stack
+- **tags** (array) - Labels for categorization and filtering
+- **custom** (object) - Any additional custom metadata
+
+### Viewing Metadata
+
+```bash
+# List stacks with description and tags (truncated)
+comet list
+
+# Show full metadata including owner
+comet list --details
+```
+
+**Example output:**
+```
++------------+--------------------------------------+---------------+--------------------+
+| STACK      | DESCRIPTION                          | OWNER         | TAGS               |
++------------+--------------------------------------+---------------+--------------------+
+| production | Production with HA configuration     | platform-team | prod, critical     |
++------------+--------------------------------------+---------------+--------------------+
+```
+
+### Use Cases for Metadata
+
+- **Team ownership**: Identify who owns each stack
+- **Documentation**: Add context without cluttering code
+- **Filtering**: Use tags to group related stacks
+- **Automation**: Custom fields for CI/CD pipelines
+- **Cost tracking**: Link stacks to cost centers or projects
+- **Alerting**: Store contact info for incident response
 
 ## Backend Configuration
 
