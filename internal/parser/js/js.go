@@ -194,46 +194,56 @@ func (vm *jsinterpreter) registerStack(stack *schema.Stack) func(string, map[str
 	}
 }
 
-func (vm *jsinterpreter) registerMetadata(stack *schema.Stack) func(map[string]interface{}) {
-	return func(meta map[string]interface{}) {
+func (vm *jsinterpreter) registerMetadata(stack *schema.Stack) func(goja.Value) {
+	return func(metaValue goja.Value) {
 		log.Debug("register metadata", "stack", stack.Name)
 
 		metadata := &schema.Metadata{}
 
-		if desc, ok := meta["description"].(string); ok {
-			metadata.Description = desc
+		// Get the metadata object
+		metaObj := metaValue.ToObject(vm.rt)
+		if metaObj == nil {
+			return
 		}
 
-		if owner, ok := meta["owner"].(string); ok {
-			metadata.Owner = owner
+		// Extract description
+		if descVal := metaObj.Get("description"); descVal != nil && !goja.IsUndefined(descVal) {
+			if desc, ok := descVal.Export().(string); ok {
+				metadata.Description = desc
+			}
 		}
 
-		if tags, ok := meta["tags"].([]interface{}); ok {
-			metadata.Tags = make([]string, 0, len(tags))
-			for _, tag := range tags {
-				if tagStr, ok := tag.(string); ok {
-					metadata.Tags = append(metadata.Tags, tagStr)
+		// Extract owner
+		if ownerVal := metaObj.Get("owner"); ownerVal != nil && !goja.IsUndefined(ownerVal) {
+			if owner, ok := ownerVal.Export().(string); ok {
+				metadata.Owner = owner
+			}
+		}
+
+		// Extract tags
+		if tagsVal := metaObj.Get("tags"); tagsVal != nil && !goja.IsUndefined(tagsVal) {
+			if tagsExport := tagsVal.Export(); tagsExport != nil {
+				if tags, ok := tagsExport.([]interface{}); ok {
+					metadata.Tags = make([]string, 0, len(tags))
+					for _, tag := range tags {
+						if tagStr, ok := tag.(string); ok {
+							metadata.Tags = append(metadata.Tags, tagStr)
+						}
+					}
 				}
 			}
 		}
 
-		// Store custom fields preserving order
-		if customObj, ok := meta["custom"].(map[string]interface{}); ok {
-			// Use goja to get object keys in order
-			if vm.rt != nil {
-				customValue := vm.rt.ToValue(meta["custom"])
-				if obj := customValue.ToObject(vm.rt); obj != nil {
-					keys := obj.Keys()
-					orderedCustom := make([]interface{}, 0, len(keys)*2)
-					for _, key := range keys {
-						val := obj.Get(key)
-						orderedCustom = append(orderedCustom, key, val.Export())
-					}
-					metadata.Custom = orderedCustom
+		// Extract custom fields preserving order
+		if customVal := metaObj.Get("custom"); customVal != nil && !goja.IsUndefined(customVal) {
+			if customObj := customVal.ToObject(vm.rt); customObj != nil {
+				keys := customObj.Keys()
+				orderedCustom := make([]interface{}, 0, len(keys)*2)
+				for _, key := range keys {
+					val := customObj.Get(key)
+					orderedCustom = append(orderedCustom, key, val.Export())
 				}
-			} else {
-				// Fallback to map
-				metadata.Custom = customObj
+				metadata.Custom = orderedCustom
 			}
 		}
 

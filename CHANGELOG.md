@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.3] - 2025-10-22
+## [0.6.4] - 2025-01-07
+
+### Fixed
+- Custom metadata field ordering now stable and consistent across runs
+- Removed extra leading spaces from custom field values in table display
+
+## [0.6.3] - 2025-01-07
 
 ### Changed
 - **Enhanced metadata display in `comet list --details`**

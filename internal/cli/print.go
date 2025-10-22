@@ -54,7 +54,7 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 	headers = append(headers, "path")
 
 	table.SetHeader(headers)
-	table.SetAutoWrapText(true)
+	table.SetAutoWrapText(false)
 	table.SetRowLine(true)
 	table.SetColWidth(20)
 	table.SetAutoMergeCells(false)
@@ -96,19 +96,18 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 						if i+1 < len(orderedSlice) {
 							k := fmt.Sprintf("%v", orderedSlice[i])
 							v := orderedSlice[i+1]
-							line := fmt.Sprintf("%-20s", fmt.Sprintf("%s=%v", k, v))
-							customPairs = append(customPairs, line)
+							customPairs = append(customPairs, fmt.Sprintf("%s=%v", k, v))
 						}
 					}
 				} else if customMap, ok := s.Metadata.Custom.(map[string]any); ok {
 					// Fallback to map (unordered)
 					for k, v := range customMap {
-						line := fmt.Sprintf("%-20s", fmt.Sprintf("%s=%v", k, v))
-						customPairs = append(customPairs, line)
+						customPairs = append(customPairs, fmt.Sprintf("%s=%v", k, v))
 					}
 				}
 
 				if len(customPairs) > 0 {
+					// Join without manual padding - let tablewriter handle it
 					custom = strings.Join(customPairs, "\n")
 				}
 			}
