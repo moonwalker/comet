@@ -52,6 +52,7 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 	table.SetAutoWrapText(true)
 	table.SetRowLine(true)
 	table.SetColWidth(20)
+	table.SetAutoMergeCells(false)
 
 	for _, s := range stacks.OrderByName() {
 		var desc, owner, tags, custom string
@@ -84,7 +85,9 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 			if customMap, ok := s.Metadata.Custom.(map[string]any); ok && len(customMap) > 0 {
 				customPairs := make([]string, 0, len(customMap))
 				for k, v := range customMap {
-					customPairs = append(customPairs, fmt.Sprintf("%s=%v", k, v))
+					// Force each line to be long enough to prevent combining
+					line := fmt.Sprintf("%-20s", fmt.Sprintf("%s=%v", k, v))
+					customPairs = append(customPairs, line)
 				}
 				slices.Sort(customPairs)
 				custom = strings.Join(customPairs, "\n")
