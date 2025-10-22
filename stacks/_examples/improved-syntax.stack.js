@@ -32,11 +32,19 @@ backend('gcs', {
 // envs('CLOUDFLARE_API_TOKEN', secrets('sops://secrets.enc.yaml#/cloudflare/api_token'))
 
 // NEW WAY (bulk object syntax):
+// NOTE: Commented out - requires actual secrets file
+// envs({
+//   DIGITALOCEAN_TOKEN: secrets('sops://secrets.enc.yaml#/digitalocean/token'),
+//   AWS_ACCESS_KEY_ID: secrets('sops://secrets.enc.yaml#/digitalocean/spaces_access_key'),
+//   AWS_SECRET_ACCESS_KEY: secrets('sops://secrets.enc.yaml#/digitalocean/spaces_secret_key'),
+//   CLOUDFLARE_API_TOKEN: secrets('sops://secrets.enc.yaml#/cloudflare/api_token')
+// })
+
+// Example with plain values
 envs({
-  DIGITALOCEAN_TOKEN: secrets('sops://secrets.enc.yaml#/digitalocean/token'),
-  AWS_ACCESS_KEY_ID: secrets('sops://secrets.enc.yaml#/digitalocean/spaces_access_key'),
-  AWS_SECRET_ACCESS_KEY: secrets('sops://secrets.enc.yaml#/digitalocean/spaces_secret_key'),
-  CLOUDFLARE_API_TOKEN: secrets('sops://secrets.enc.yaml#/cloudflare/api_token')
+  EXAMPLE_VAR_1: 'value1',
+  EXAMPLE_VAR_2: 'value2',
+  REGION: 'us-west-2'
 })
 
 // ============================================================================
@@ -44,102 +52,70 @@ envs({
 // ============================================================================
 
 // Configure default secrets provider and path (optional, defaults shown)
-secretsConfig({
-  defaultProvider: 'sops',
-  defaultPath: 'secrets.enc.yaml'
-})
+// NOTE: Commented out - for demonstration only
+// secretsConfig({
+//   defaultProvider: 'sops',
+//   defaultPath: 'secrets.enc.yaml'
+// })
 
 // Now you can use the shorthand secret() function
 
 // OLD WAY (verbose):
-const datadogOld = component('datadog-old', 'modules/datadog', {
-  api_key: secrets('sops://secrets.enc.yaml#/datadog/api_key'),
-  app_key: secrets('sops://secrets.enc.yaml#/datadog/app_key'),
-  cluster_name: `${settings.common_name}-{{ .stack }}`
-})
+// const datadogOld = component('datadog-old', 'modules/datadog', {
+//   api_key: secrets('sops://secrets.enc.yaml#/datadog/api_key'),
+//   app_key: secrets('sops://secrets.enc.yaml#/datadog/app_key'),
+//   cluster_name: `${settings.common_name}-{{ .stack }}`
+// })
 
 // NEW WAY (shorthand with forward slash):
-const datadog = component('datadog', 'modules/datadog', {
-  api_key: secret('datadog/api_key'),
-  app_key: secret('datadog/app_key'),
-  cluster_name: `${settings.common_name}-{{ .stack }}`
-})
+// const datadog = component('datadog', 'modules/datadog', {
+//   api_key: secret('datadog/api_key'),
+//   app_key: secret('datadog/app_key'),
+//   cluster_name: `${settings.common_name}-{{ .stack }}`
+// })
 
 // ALSO WORKS (dot notation):
-const argocd = component('argocd', 'modules/argocd', {
-  admin_password: secret('argocd.admin_password'),
-  slack_token: secret('argocd.slack_token'),
-  github_client_secret: secret('argocd.github_client_secret')
-})
+// const argocd = component('argocd', 'modules/argocd', {
+//   admin_password: secret('argocd.admin_password'),
+//   slack_token: secret('argocd.slack_token'),
+//   github_client_secret: secret('argocd.github_client_secret')
+// })
 
 // Still works with full path if needed
-const legacy = component('legacy', 'modules/legacy', {
-  token: secrets('sops://secrets.enc.yaml#/legacy/token')
-})
+// const legacy = component('legacy', 'modules/legacy', {
+//   token: secrets('sops://secrets.enc.yaml#/legacy/token')
+// })
 
 // ============================================================================
-// Feature 3: Domain Name Helpers
+// Feature 3: Template Strings for Domains
 // ============================================================================
 
-// OLD WAY (manual template strings):
-const pgwebOld = component('pgweb-old', 'modules/pgweb', {
+// Use template strings with placeholders for dynamic values:
+const pgweb = component('pgweb', 'modules/pgweb', {
   domain_name: 'pgweb.{{ .stack }}.{{ .settings.domain_name }}'
   // Results in: pgweb.improved-demo.example.io
 })
 
-const argoOld = component('argo-old', 'modules/argocd', {
+const argo = component('argo', 'modules/argocd', {
   domain_name: 'argo.{{ .stack }}.{{ .settings.domain_name }}'
   // Results in: argo.improved-demo.example.io
 })
 
-// NEW WAY (subdomain helper - includes stack):
-const pgweb = component('pgweb', 'modules/pgweb', {
-  domain_name: subdomain('pgweb')
-  // Expands to: pgweb.{{ .stack }}.{{ .settings.domain_name }}
-  // Results in: pgweb.improved-demo.example.io
-})
-
-const argo = component('argo', 'modules/argocd', {
-  domain_name: subdomain('argo')
-  // Expands to: argo.{{ .stack }}.{{ .settings.domain_name }}
-  // Results in: argo.improved-demo.example.io
-})
-
-const natsNui = component('nats-nui', 'modules/nats-nui', {
-  domain_name: subdomain('nui')
-  // Results in: nui.improved-demo.example.io
-})
-
-// Use fqdn() for domains without stack prefix
+// For domains without stack prefix:
 const api = component('api', 'modules/api', {
-  domain_name: fqdn('api')
-  // Expands to: api.{{ .settings.domain_name }}
+  domain_name: 'api.{{ .settings.domain_name }}'
   // Results in: api.example.io (no stack in domain)
 })
 
-const www = component('www', 'modules/website', {
-  domain_name: fqdn('www')
-  // Results in: www.example.io
-})
-
-// Override stack name in subdomain if needed
-const customStack = component('custom', 'modules/app', {
-  domain_name: subdomain('app', { stack: 'production' })
-  // Expands to: app.production.{{ .settings.domain_name }}
-  // Results in: app.production.example.io (regardless of actual stack)
-})
+// You can also create your own helper functions (see userland-helpers.stack.js)
 
 // ============================================================================
 // Complete Example: All Features Together
 // ============================================================================
 
 const database = component('database', 'modules/database', {
-  // Shorthand secrets with dot notation
-  admin_password: secret('database.admin_password'),
-  replication_password: secret('database.replication_password'),
-
-  // Domain helper
-  admin_ui_domain: subdomain('db-admin'),
+  // Template for domain
+  admin_ui_domain: 'db-admin.{{ .stack }}.{{ .settings.domain_name }}',
 
   // Regular config
   storage_size: '100Gi',
@@ -147,14 +123,10 @@ const database = component('database', 'modules/database', {
 })
 
 const monitoring = component('monitoring', 'modules/monitoring', {
-  // Shorthand secrets with forward slash
-  slack_webhook: secret('monitoring/slack_webhook'),
-  pagerduty_key: secret('monitoring/pagerduty_key'),
-
-  // Multiple domain helpers
-  grafana_domain: subdomain('grafana'),
-  prometheus_domain: subdomain('prometheus'),
-  alertmanager_domain: subdomain('alerts'),
+  // Multiple template domains
+  grafana_domain: 'grafana.{{ .stack }}.{{ .settings.domain_name }}',
+  prometheus_domain: 'prometheus.{{ .stack }}.{{ .settings.domain_name }}',
+  alertmanager_domain: 'alerts.{{ .stack }}.{{ .settings.domain_name }}',
 
   // Database reference
   database_url: database.connection_string

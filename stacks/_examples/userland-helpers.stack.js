@@ -83,7 +83,7 @@ const preview = component('preview', 'modules/frontend', {
 const monitoring = component('grafana', 'modules/grafana', {
   // No helper needed - just do it directly
   domain_name: `grafana.{{ .stack }}.${opts.base_domain}`,
-  admin_password: secret('grafana/password')
+  replicas: 1
 })
 
 print('✅ Custom userland helpers work perfectly!')

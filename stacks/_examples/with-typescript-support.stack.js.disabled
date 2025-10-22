@@ -50,24 +50,21 @@ backend('gcs', {
 // ============================================================================
 
 // Autocomplete shows available options: defaultProvider, defaultPath
-secretsConfig({
-  defaultProvider: 'sops',
-  defaultPath: 'secrets.enc.yaml'
-})
+// NOTE: Commented out - requires actual secrets file
+// secretsConfig({
+//   defaultProvider: 'sops',
+//   defaultPath: 'secrets.enc.yaml'
+// })
 
 // ============================================================================
 // Environment Variables
 // ============================================================================
 
-// Old way - still works
-envs('AWS_REGION', opts.region)
-
-// New bulk way - TypeScript validates the object structure
+// Example with plain values
 envs({
   AWS_REGION: opts.region,
-  AWS_ACCESS_KEY_ID: secret('aws/access_key_id'),
-  AWS_SECRET_ACCESS_KEY: secret('aws/secret_access_key'),
-  ENVIRONMENT: opts.environment
+  ENVIRONMENT: opts.environment,
+  APP_NAME: opts.org
 })
 
 // ============================================================================

@@ -47,7 +47,7 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 		headers = append(headers, "custom")
 	}
 	headers = append(headers, "path")
-	
+
 	table.SetHeader(headers)
 	table.SetAutoWrapText(false)
 
