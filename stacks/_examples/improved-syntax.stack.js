@@ -11,6 +11,11 @@ const settings = {
 
 stack('improved-demo', { settings })
 
+metadata({
+  description: 'DSL improvements: bulk envs, secret shortcuts, domain helpers',
+  tags: ['example', 'dsl', 'features']
+})
+
 backend('gcs', {
   bucket: 'my-tf-state',
   prefix: `${settings.org}-${settings.common_name}/stacks/{{ .stack }}/{{ .component }}`

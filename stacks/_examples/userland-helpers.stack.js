@@ -10,6 +10,11 @@ const opts = {
 
 stack('demo', { opts })
 
+metadata({
+  description: 'Userland patterns: custom helpers and domain functions',
+  tags: ['example', 'patterns', 'userland']
+})
+
 backend('gcs', {
   bucket: 'my-state',
   prefix: `${opts.org}/{{ .stack }}/{{ .component }}`

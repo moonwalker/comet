@@ -10,7 +10,7 @@ import (
 
 var (
 	listDetails bool
-	
+
 	listCmd = &cobra.Command{
 		Use:     "list [stack]",
 		Short:   "List stacks or components",

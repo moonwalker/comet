@@ -7,6 +7,18 @@ const settings = {
 
 stack('test', { settings })
 
+metadata({
+  description: 'Test stack for DSL features',
+  tags: ['example', 'test', 'dsl'],
+  custom: {
+    server_type: 'cx33',
+    vcpu: 4,
+    ram_gb: 8,
+    storage_gb: 80,
+    monthly_cost_eur: 5.49
+  }
+})
+
 backend('gcs', {
   bucket: 'test-bucket',
   prefix: 'test/{{ .stack }}/{{ .component }}'

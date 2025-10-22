@@ -30,6 +30,11 @@ const opts = {
 // TypeScript knows this returns a Stack object
 const myStack = stack('production', { opts })
 
+metadata({
+  description: 'TypeScript support with autocomplete and type checking',
+  tags: ['example', 'typescript', 'ide']
+})
+
 // ============================================================================
 // Backend Configuration
 // ============================================================================

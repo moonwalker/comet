@@ -1,57 +1,66 @@
 // Example: Complete secrets workflow
 //
 // This demonstrates the difference between:
-// 1. Pre-loaded env vars (comet.yaml) - needed BEFORE parsing
+// 1. Bootstrap secrets (one-time setup) - SOPS_AGE_KEY, provider credentials
 // 2. Stack-level secrets - loaded DURING parsing, used by Terraform
 
 // ============================================================
-// In comet.yaml:
+// Bootstrap Setup (run once):
 // ============================================================
-// env:
-//   # SOPS AGE key must be available before stack parsing
-//   SOPS_AGE_KEY: op://ci-cd/sops-age-key/private
+// comet bootstrap add SOPS_AGE_KEY op://ci-cd/sops-age-key/private
+// comet bootstrap add DIGITALOCEAN_TOKEN op://production/digitalocean/token
 //
-//   # Any other early-stage environment variables
-//   TF_LOG: DEBUG
+// These are cached in .comet/bootstrap.state and auto-loaded
 // ============================================================
 
-stack({
-  name: 'complete-secrets-example',
-  backend: {
-    type: 'gcs',
-    bucket: 'my-terraform-state',
-    prefix: 'complete-example'
-  }
+const settings = {
+  org: 'acme',
+  app: 'myapp',
+  env: 'production'
+}
+
+stack('complete-secrets', { settings })
+
+metadata({
+  description: 'Complete secrets workflow example',
+  tags: ['example', 'secrets', 'sops', '1password']
 })
 
-// Now that SOPS_AGE_KEY is set, we can use sops:// references
-component('database', {
-  source: './modules/database',
-  vars: {
-    // SOPS secret (requires SOPS_AGE_KEY from comet.yaml)
-    admin_password: secret('sops://secrets/db.yaml#admin_password'),
-
-    // 1Password secret (loaded on-demand during stack parsing)
-    backup_credentials: secret('op://production/database/backup-key'),
-
-    // Plain values work too
-    database_name: 'myapp_production'
-  }
+backend('gcs', {
+  bucket: 'my-terraform-state',
+  prefix: `${settings.org}/${settings.app}/{{ .stack }}/{{ .component }}`
 })
 
-component('app', {
-  source: './modules/app',
-  vars: {
-    // Mix and match secret sources
-    api_key: secret('sops://secrets/app.yaml#api_key'),
-    oauth_client_secret: secret('op://production/oauth/client-secret'),
+// Configure secrets defaults
+secretsConfig({
+  defaultProvider: 'sops',
+  defaultPath: 'secrets/prod.yaml'
+})
 
-    // Reference outputs from other components
-    database_host: state('database', 'host'),
-    database_port: state('database', 'port')
-  },
-  envs: {
-    // Environment variables for Terraform execution
-    TF_VAR_region: 'us-west-2'
-  }
+// Now that SOPS_AGE_KEY is bootstrapped, we can use sops:// references
+component('database', 'modules/database', {
+  // SOPS secret (requires SOPS_AGE_KEY from bootstrap)
+  admin_password: secrets('sops://secrets/prod.yaml#admin_password'),
+
+  // 1Password secret (loaded on-demand during stack parsing)
+  backup_credentials: secrets('op://production/database/backup-key'),
+
+  // Plain values work too
+  database_name: `${settings.app}_${settings.env}`
+})
+
+component('app', 'modules/app', {
+  // Mix and match secret sources
+  api_key: secrets('sops://secrets/prod.yaml#api_key'),
+  oauth_client_secret: secrets('op://production/oauth/client-secret'),
+
+  // Reference outputs from other components
+  database_host: state('database', 'host'),
+  database_port: state('database', 'port')
+})
+
+// Bulk environment variables for Terraform
+envs({
+  TF_VAR_region: 'us-west-2',
+  TF_VAR_environment: settings.env
 })

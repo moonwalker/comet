@@ -197,17 +197,17 @@ func (vm *jsinterpreter) registerStack(stack *schema.Stack) func(string, map[str
 func (vm *jsinterpreter) registerMetadata(stack *schema.Stack) func(map[string]interface{}) {
 	return func(meta map[string]interface{}) {
 		log.Debug("register metadata", "stack", stack.Name)
-		
+
 		metadata := &schema.Metadata{}
-		
+
 		if desc, ok := meta["description"].(string); ok {
 			metadata.Description = desc
 		}
-		
+
 		if owner, ok := meta["owner"].(string); ok {
 			metadata.Owner = owner
 		}
-		
+
 		if tags, ok := meta["tags"].([]interface{}); ok {
 			metadata.Tags = make([]string, 0, len(tags))
 			for _, tag := range tags {
@@ -216,18 +216,12 @@ func (vm *jsinterpreter) registerMetadata(stack *schema.Stack) func(map[string]i
 				}
 			}
 		}
-		
-		// Store any custom fields that aren't standard ones
-		custom := make(map[string]interface{})
-		for k, v := range meta {
-			if k != "description" && k != "owner" && k != "tags" {
-				custom[k] = v
-			}
+
+		// Store custom fields
+		if customFields, ok := meta["custom"].(map[string]interface{}); ok {
+			metadata.Custom = customFields
 		}
-		if len(custom) > 0 {
-			metadata.Custom = custom
-		}
-		
+
 		stack.Metadata = metadata
 	}
 }
