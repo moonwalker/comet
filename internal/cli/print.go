@@ -89,7 +89,7 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 			// Custom fields - show as key=value pairs, one per line
 			if s.Metadata.Custom != nil {
 				customPairs := []string{}
-				
+
 				// Handle ordered slice format (key, value, key, value, ...)
 				if orderedSlice, ok := s.Metadata.Custom.([]interface{}); ok {
 					for i := 0; i < len(orderedSlice); i += 2 {
@@ -107,7 +107,7 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 						customPairs = append(customPairs, line)
 					}
 				}
-				
+
 				if len(customPairs) > 0 {
 					custom = strings.Join(customPairs, "\n")
 				}
