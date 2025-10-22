@@ -31,8 +31,13 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 			if s.Metadata.Owner != "" {
 				hasOwner = true
 			}
-			if customMap, ok := s.Metadata.Custom.(map[string]any); ok && len(customMap) > 0 {
-				hasCustom = true
+			if s.Metadata.Custom != nil {
+				// Check if it's an ordered slice or a map with content
+				if orderedSlice, ok := s.Metadata.Custom.([]interface{}); ok && len(orderedSlice) > 0 {
+					hasCustom = true
+				} else if customMap, ok := s.Metadata.Custom.(map[string]any); ok && len(customMap) > 0 {
+					hasCustom = true
+				}
 			}
 		}
 	}
@@ -82,15 +87,30 @@ func PrintStacksList(stacks *schema.Stacks, details bool) {
 			}
 
 			// Custom fields - show as key=value pairs, one per line
-			if customMap, ok := s.Metadata.Custom.(map[string]any); ok && len(customMap) > 0 {
-				customPairs := make([]string, 0, len(customMap))
-				for k, v := range customMap {
-					// Force each line to be long enough to prevent combining
-					line := fmt.Sprintf("%-20s", fmt.Sprintf("%s=%v", k, v))
-					customPairs = append(customPairs, line)
+			if s.Metadata.Custom != nil {
+				customPairs := []string{}
+				
+				// Handle ordered slice format (key, value, key, value, ...)
+				if orderedSlice, ok := s.Metadata.Custom.([]interface{}); ok {
+					for i := 0; i < len(orderedSlice); i += 2 {
+						if i+1 < len(orderedSlice) {
+							k := fmt.Sprintf("%v", orderedSlice[i])
+							v := orderedSlice[i+1]
+							line := fmt.Sprintf("%-20s", fmt.Sprintf("%s=%v", k, v))
+							customPairs = append(customPairs, line)
+						}
+					}
+				} else if customMap, ok := s.Metadata.Custom.(map[string]any); ok {
+					// Fallback to map (unordered)
+					for k, v := range customMap {
+						line := fmt.Sprintf("%-20s", fmt.Sprintf("%s=%v", k, v))
+						customPairs = append(customPairs, line)
+					}
 				}
-				slices.Sort(customPairs)
-				custom = strings.Join(customPairs, "\n")
+				
+				if len(customPairs) > 0 {
+					custom = strings.Join(customPairs, "\n")
+				}
 			}
 		}
 

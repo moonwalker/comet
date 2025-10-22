@@ -217,9 +217,24 @@ func (vm *jsinterpreter) registerMetadata(stack *schema.Stack) func(map[string]i
 			}
 		}
 
-		// Store custom fields
-		if customFields, ok := meta["custom"].(map[string]interface{}); ok {
-			metadata.Custom = customFields
+		// Store custom fields preserving order
+		if customObj, ok := meta["custom"].(map[string]interface{}); ok {
+			// Use goja to get object keys in order
+			if vm.rt != nil {
+				customValue := vm.rt.ToValue(meta["custom"])
+				if obj := customValue.ToObject(vm.rt); obj != nil {
+					keys := obj.Keys()
+					orderedCustom := make([]interface{}, 0, len(keys)*2)
+					for _, key := range keys {
+						val := obj.Get(key)
+						orderedCustom = append(orderedCustom, key, val.Export())
+					}
+					metadata.Custom = orderedCustom
+				}
+			} else {
+				// Fallback to map
+				metadata.Custom = customObj
+			}
 		}
 
 		stack.Metadata = metadata
