@@ -171,6 +171,11 @@ func (r *Runner) runSecretStep(step *schema.BootstrapStep) error {
 		mode = os.FileMode(modeInt)
 	}
 
+	// Ensure value ends with newline (Unix text file convention)
+	if len(value) > 0 && !strings.HasSuffix(value, "\n") {
+		value = value + "\n"
+	}
+
 	// Write file
 	if err := os.WriteFile(targetPath, []byte(value), mode); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
