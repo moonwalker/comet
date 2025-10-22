@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2025-10-22
+
+### Fixed
+- Bootstrap secret files now properly end with newline character (POSIX standard)
+- Ensures compatibility with tools that expect newline-terminated text files
+- Prevents Git warnings about missing newlines at end of file
+
 ## [0.6.0] - 2025-10-16
 
 ### Added
@@ -100,7 +107,8 @@ bootstrap:
 - Support for Terraform and OpenTofu
 - CLI commands: plan, apply, destroy, list, output, clean
 
-[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/moonwalker/comet/releases/tag/v0.6.1
 [0.6.0]: https://github.com/moonwalker/comet/releases/tag/v0.6.0
 [0.5.0]: https://github.com/moonwalker/comet/releases/tag/v0.5.0
 [0.1.0]: https://github.com/moonwalker/comet/releases/tag/v0.1.0
