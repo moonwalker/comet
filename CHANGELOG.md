@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2025-10-22
+
+### Changed
+- **Enhanced metadata display in `comet list --details`**
+  - Dynamic columns: only show owner/custom columns when data exists
+  - Custom fields display in definition order (not alphabetically sorted)
+  - Custom fields shown one per line for better readability
+  - Optimized table width for smaller screens (20-char columns with wrapping)
+  - Shortened paths by removing 'stacks/' prefix
+  - Row lines between stacks for improved clarity
+
+### Fixed
+- Updated example stack files to work without requiring secret files
+- Removed outdated examples that referenced deprecated features
+- All examples now run successfully with `comet list --details`
+
 ## [0.6.2] - 2025-10-22
 
 ### Added
@@ -122,7 +138,8 @@ bootstrap:
 - Support for Terraform and OpenTofu
 - CLI commands: plan, apply, destroy, list, output, clean
 
-[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/moonwalker/comet/releases/tag/v0.6.3
 [0.6.2]: https://github.com/moonwalker/comet/releases/tag/v0.6.2
 [0.6.1]: https://github.com/moonwalker/comet/releases/tag/v0.6.1
 [0.6.0]: https://github.com/moonwalker/comet/releases/tag/v0.6.0
