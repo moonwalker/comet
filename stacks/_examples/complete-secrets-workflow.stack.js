@@ -44,23 +44,23 @@ backend('gcs', {
 
 // Example components showing secret syntax
 // Uncomment when you have actual secret files set up
-// 
+//
 // component('database', 'modules/database', {
 //   // SOPS secret (requires SOPS_AGE_KEY from bootstrap)
 //   admin_password: secrets('sops://secrets/prod.yaml#admin_password'),
-// 
+//
 //   // 1Password secret (loaded on-demand during stack parsing)
 //   backup_credentials: secrets('op://production/database/backup-key'),
-// 
+//
 //   // Plain values work too
 //   database_name: `${settings.app}_${settings.env}`
 // })
-// 
+//
 // component('app', 'modules/app', {
 //   // Mix and match secret sources
 //   api_key: secrets('sops://secrets/prod.yaml#api_key'),
 //   oauth_client_secret: secrets('op://production/oauth/client-secret'),
-// 
+//
 //   // Reference outputs from other components
 //   database_host: state('database', 'host'),
 //   database_port: state('database', 'port')

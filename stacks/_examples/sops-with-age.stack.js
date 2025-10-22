@@ -36,12 +36,12 @@ backend('gcs', {
 //   defaultProvider: 'sops',
 //   defaultPath: 'secrets/prod.yaml'
 // })
-// 
+//
 // component('app', 'modules/app', {
 //   // These secrets are decrypted using the AGE key from bootstrap
 //   database_password: secrets('sops://secrets/prod.yaml#database_password'),
 //   api_key: secrets('sops://secrets/prod.yaml#api_key'),
-//   
+//
 //   // Or use different file
 //   external_api_token: secrets('sops://secrets/external.yaml#api_token')
 // })
