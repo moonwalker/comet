@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -224,13 +225,58 @@ func (r *Runner) runCheckStep(step *schema.BootstrapStep) error {
 	return nil
 }
 
-// expandPath expands ~ and environment variables in paths
+// expandPath expands ~ and environment variables in paths.
+// It also handles SOPS age key path resolution on macOS.
 func expandPath(path string) string {
+	// Handle special case for SOPS age keys on macOS
+	// SOPS uses different default paths depending on XDG_CONFIG_HOME:
+	// - If XDG_CONFIG_HOME is set: $XDG_CONFIG_HOME/sops/age/keys.txt
+	// - On macOS without XDG_CONFIG_HOME: ~/Library/Application Support/sops/age/keys.txt
+	// - On Linux without XDG_CONFIG_HOME: ~/.config/sops/age/keys.txt
+	if strings.Contains(path, "sops/age/keys.txt") {
+		resolvedPath := resolveSopsAgePath(path)
+		if resolvedPath != "" {
+			return resolvedPath
+		}
+	}
+
 	if strings.HasPrefix(path, "~/") {
 		home, _ := os.UserHomeDir()
 		path = filepath.Join(home, path[2:])
 	}
 	return os.ExpandEnv(path)
+}
+
+// resolveSopsAgePath resolves the SOPS age key path to match what the SOPS library expects.
+// This ensures bootstrap saves the key where SOPS will actually look for it.
+func resolveSopsAgePath(path string) string {
+	const sopsAgeKeyPath = "sops/age/keys.txt"
+
+	// If path doesn't contain the SOPS age key path, don't modify it
+	if !strings.Contains(path, sopsAgeKeyPath) {
+		return ""
+	}
+
+	// Check if XDG_CONFIG_HOME is set
+	if xdgConfigHome := os.Getenv("XDG_CONFIG_HOME"); xdgConfigHome != "" {
+		// Use XDG_CONFIG_HOME if set (works on all platforms)
+		return filepath.Join(xdgConfigHome, sopsAgeKeyPath)
+	}
+
+	// Platform-specific defaults when XDG_CONFIG_HOME is not set
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+
+	if runtime.GOOS == "darwin" {
+		// macOS: ~/Library/Application Support/sops/age/keys.txt
+		// This matches what os.UserConfigDir() returns on macOS
+		return filepath.Join(home, "Library", "Application Support", sopsAgeKeyPath)
+	}
+
+	// Linux/others: ~/.config/sops/age/keys.txt
+	return filepath.Join(home, ".config", sopsAgeKeyPath)
 }
 
 // NeedsBootstrap checks if any bootstrap steps need to be run

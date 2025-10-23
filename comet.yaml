@@ -16,8 +16,13 @@ generate_backend: false
 #   - name: sops-age-key
 #     type: secret
 #     source: op://vault/infrastructure/sops-age-key  # Your 1Password path
-#     target: ~/.config/sops/age/keys.txt
+#     target: ~/.config/sops/age/keys.txt  # Automatically resolves to platform-specific path
 #     mode: "0600"
+#
+#   # Note: For SOPS age keys, bootstrap automatically resolves the target path:
+#   #   - macOS without XDG_CONFIG_HOME: ~/Library/Application Support/sops/age/keys.txt
+#   #   - macOS with XDG_CONFIG_HOME: $XDG_CONFIG_HOME/sops/age/keys.txt
+#   #   - Linux: ~/.config/sops/age/keys.txt (or $XDG_CONFIG_HOME if set)
 #
 #   # Optional: Check required tools
 #   - name: check-tools

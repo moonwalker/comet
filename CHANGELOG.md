@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2025-10-23
+
+### Fixed
+- **Bootstrap SOPS age key path resolution on macOS** - Bootstrap now correctly saves age keys to the platform-specific path that SOPS expects:
+  - macOS without `XDG_CONFIG_HOME`: `~/Library/Application Support/sops/age/keys.txt`
+  - macOS with `XDG_CONFIG_HOME`: `$XDG_CONFIG_HOME/sops/age/keys.txt`
+  - Linux: `~/.config/sops/age/keys.txt` (or `$XDG_CONFIG_HOME/sops/age/keys.txt`)
+  - Previously, bootstrap always saved to `~/.config/sops/age/keys.txt` on all platforms, causing SOPS to fail finding keys on macOS
+
 ## [0.6.4] - 2025-01-07
 
 ### Fixed
@@ -144,7 +153,9 @@ bootstrap:
 - Support for Terraform and OpenTofu
 - CLI commands: plan, apply, destroy, list, output, clean
 
-[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.3...HEAD
+[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.5...HEAD
+[0.6.5]: https://github.com/moonwalker/comet/releases/tag/v0.6.5
+[0.6.4]: https://github.com/moonwalker/comet/releases/tag/v0.6.4
 [0.6.3]: https://github.com/moonwalker/comet/releases/tag/v0.6.3
 [0.6.2]: https://github.com/moonwalker/comet/releases/tag/v0.6.2
 [0.6.1]: https://github.com/moonwalker/comet/releases/tag/v0.6.1
