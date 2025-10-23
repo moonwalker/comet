@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.7] - 2025-10-23
+
+### Added
+- **Smart SOPS age key management** - Bootstrap now properly handles age keys:
+  - Formats keys with public key comments (e.g., `# public key: age1...`)
+  - Appends to existing key files instead of overwriting
+  - Detects duplicate keys by comparing public keys (won't append the same key twice)
+  - Preserves other existing keys in the file
+
+### Changed
+- Bootstrap uses age library's `ParseIdentities()` for proper key file parsing
+
 ## [0.6.6] - 2025-10-23
 
 ### Added
@@ -162,7 +174,8 @@ bootstrap:
 - Support for Terraform and OpenTofu
 - CLI commands: plan, apply, destroy, list, output, clean
 
-[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.6...HEAD
+[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.7...HEAD
+[0.6.7]: https://github.com/moonwalker/comet/releases/tag/v0.6.7
 [0.6.6]: https://github.com/moonwalker/comet/releases/tag/v0.6.6
 [0.6.5]: https://github.com/moonwalker/comet/releases/tag/v0.6.5
 [0.6.4]: https://github.com/moonwalker/comet/releases/tag/v0.6.4

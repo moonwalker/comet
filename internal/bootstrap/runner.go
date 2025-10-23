@@ -5,11 +5,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
+	"filippo.io/age"
 	"github.com/moonwalker/comet/internal/log"
 	"github.com/moonwalker/comet/internal/schema"
 	"github.com/moonwalker/comet/internal/secrets"
@@ -184,17 +186,56 @@ func (r *Runner) runSecretStep(step *schema.BootstrapStep) error {
 		mode = os.FileMode(modeInt)
 	}
 
+	// Format the value based on the secret type
+	var formattedValue string
+	if isSopsAgeKeySource(step.Source) {
+		// For SOPS age keys, format with public key comment
+		formattedValue, err = formatAgeKey(value)
+		if err != nil {
+			log.Warn("Could not parse age key for formatting, saving as-is", "error", err)
+			formattedValue = value
+		}
+	} else {
+		formattedValue = value
+	}
+
 	// Ensure value ends with newline (Unix text file convention)
-	if len(value) > 0 && !strings.HasSuffix(value, "\n") {
-		value = value + "\n"
+	if len(formattedValue) > 0 && !strings.HasSuffix(formattedValue, "\n") {
+		formattedValue = formattedValue + "\n"
 	}
 
-	// Write file
-	if err := os.WriteFile(targetPath, []byte(value), mode); err != nil {
-		return fmt.Errorf("failed to write file: %w", err)
+	// For SOPS age keys, check if the key already exists in the file
+	if isSopsAgeKeySource(step.Source) {
+		shouldAppend, err := shouldAppendAgeKey(targetPath, formattedValue)
+		if err != nil {
+			return fmt.Errorf("failed to check existing keys: %w", err)
+		}
+		if !shouldAppend {
+			log.Info(fmt.Sprintf("ℹ️  Key already exists in: %s", targetPath))
+			log.Info(fmt.Sprintf("✅ %s completed (%.2fs)", step.Name, duration.Seconds()))
+			return nil
+		}
+
+		// Append to existing file
+		f, err := os.OpenFile(targetPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, mode)
+		if err != nil {
+			return fmt.Errorf("failed to open file for append: %w", err)
+		}
+		defer f.Close()
+
+		if _, err := f.WriteString(formattedValue); err != nil {
+			return fmt.Errorf("failed to append to file: %w", err)
+		}
+
+		log.Info(fmt.Sprintf("💾 Appended to: %s (mode: %o)", targetPath, mode))
+	} else {
+		// For non-age-key secrets, just write/overwrite
+		if err := os.WriteFile(targetPath, []byte(formattedValue), mode); err != nil {
+			return fmt.Errorf("failed to write file: %w", err)
+		}
+		log.Info(fmt.Sprintf("💾 Saved to: %s (mode: %o)", targetPath, mode))
 	}
 
-	log.Info(fmt.Sprintf("💾 Saved to: %s (mode: %o)", targetPath, mode))
 	log.Info(fmt.Sprintf("✅ %s completed (%.2fs)", step.Name, duration.Seconds()))
 
 	return nil
@@ -337,4 +378,77 @@ func NeedsBootstrap(config *schema.Config) bool {
 	}
 
 	return false
+}
+
+// formatAgeKey formats an age secret key with a public key comment
+func formatAgeKey(secretKey string) (string, error) {
+	// Remove whitespace
+	secretKey = strings.TrimSpace(secretKey)
+
+	// Parse the age identity to get the public key
+	identity, err := age.ParseX25519Identity(secretKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse age identity: %w", err)
+	}
+
+	// Get the recipient (public key)
+	recipient := identity.Recipient()
+
+	// Format with public key comment
+	formatted := fmt.Sprintf("# public key: %s\n%s", recipient.String(), secretKey)
+
+	return formatted, nil
+}
+
+// shouldAppendAgeKey checks if an age key should be appended to the file
+// Returns true if the key doesn't exist, false if it already exists
+func shouldAppendAgeKey(filePath, formattedKey string) (bool, error) {
+	// Parse the new key to get its public key
+	newIdentity, err := age.ParseX25519Identity(strings.TrimSpace(extractSecretKey(formattedKey)))
+	if err != nil {
+		return false, fmt.Errorf("failed to parse new key: %w", err)
+	}
+	newPublicKey := newIdentity.Recipient().String()
+
+	// Check if file exists
+	file, err := os.Open(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// File doesn't exist, we should create it
+			return true, nil
+		}
+		return false, err
+	}
+	defer file.Close()
+
+	// Parse all existing identities from the file
+	existingIdentities, err := age.ParseIdentities(file)
+	if err != nil {
+		// If file exists but has no valid keys (or is empty), we can append
+		if strings.Contains(err.Error(), "no secret keys found") {
+			return true, nil
+		}
+		return false, fmt.Errorf("failed to parse existing keys: %w", err)
+	}
+
+	// Check if our public key already exists
+	for _, identity := range existingIdentities {
+		if x25519Identity, ok := identity.(*age.X25519Identity); ok {
+			existingPublicKey := x25519Identity.Recipient().String()
+			if existingPublicKey == newPublicKey {
+				// Key already exists
+				return false, nil
+			}
+		}
+	}
+
+	// Key doesn't exist, we should append
+	return true, nil
+}
+
+// extractSecretKey extracts just the AGE-SECRET-KEY line from formatted content
+func extractSecretKey(content string) string {
+	re := regexp.MustCompile(`(?m)^AGE-SECRET-KEY-[A-Z0-9]+$`)
+	match := re.FindString(content)
+	return match
 }
