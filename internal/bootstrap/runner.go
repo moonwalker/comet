@@ -153,8 +153,20 @@ func (r *Runner) runSecretStep(step *schema.BootstrapStep) error {
 
 	log.Debug("Secret fetched", "duration", duration)
 
-	// Expand target path
-	targetPath := expandPath(step.Target)
+	// Determine target path - use default for SOPS age keys if not specified
+	targetPath := step.Target
+	if targetPath == "" {
+		// Auto-detect default path for common secret types
+		if isSopsAgeKeySource(step.Source) {
+			targetPath = getDefaultSopsAgePath()
+			log.Debug("Using default SOPS age key path", "path", targetPath)
+		} else {
+			return fmt.Errorf("target path is required for secret type: %s", step.Source)
+		}
+	}
+
+	// Expand target path (handles ~, env vars, and platform-specific SOPS paths)
+	targetPath = expandPath(targetPath)
 
 	// Create parent directory
 	targetDir := filepath.Dir(targetPath)
@@ -277,6 +289,34 @@ func resolveSopsAgePath(path string) string {
 
 	// Linux/others: ~/.config/sops/age/keys.txt
 	return filepath.Join(home, ".config", sopsAgeKeyPath)
+}
+
+// isSopsAgeKeySource checks if the source is likely a SOPS age key
+func isSopsAgeKeySource(source string) bool {
+	// Common patterns for SOPS age keys in secret managers
+	lower := strings.ToLower(source)
+	return strings.Contains(lower, "sops") &&
+		(strings.Contains(lower, "age") || strings.Contains(lower, "key"))
+}
+
+// getDefaultSopsAgePath returns the default SOPS age key path for the current platform
+func getDefaultSopsAgePath() string {
+	// Check if XDG_CONFIG_HOME is set
+	if xdgConfigHome := os.Getenv("XDG_CONFIG_HOME"); xdgConfigHome != "" {
+		return filepath.Join(xdgConfigHome, "sops", "age", "keys.txt")
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		// Fallback to a reasonable default
+		return "~/.config/sops/age/keys.txt"
+	}
+
+	if runtime.GOOS == "darwin" {
+		return filepath.Join(home, "Library", "Application Support", "sops", "age", "keys.txt")
+	}
+
+	return filepath.Join(home, ".config", "sops", "age", "keys.txt")
 }
 
 // NeedsBootstrap checks if any bootstrap steps need to be run

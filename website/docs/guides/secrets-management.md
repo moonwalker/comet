@@ -72,7 +72,9 @@ bootstrap:
   - name: sops-age-key
     type: secret
     source: op://vault/infrastructure/sops-age-key
-    target: ~/.config/sops/age/keys.txt
+    # target is optional - automatically uses platform-specific path
+    # macOS: ~/Library/Application Support/sops/age/keys.txt
+    # Linux: ~/.config/sops/age/keys.txt
     mode: "0600"
 ```
 
@@ -91,7 +93,9 @@ comet plan dev
 
 :::tip Why Bootstrap?
 
-SOPS needs the `SOPS_AGE_KEY` or `SOPS_AGE_KEY_FILE` environment variable to decrypt files. Instead of fetching this from 1Password on every command (4s overhead), bootstrap caches it to `~/.config/sops/age/keys.txt` once, making all subsequent commands fast.
+SOPS needs the `SOPS_AGE_KEY` or `SOPS_AGE_KEY_FILE` environment variable to decrypt files. Instead of fetching this from 1Password on every command (4s overhead), bootstrap caches it to the platform-specific default location once, making all subsequent commands fast.
+
+The `target` path is optional - Comet automatically detects SOPS age keys (source containing "sops" and "age") and uses the correct platform-specific path where SOPS expects to find them.
 
 :::
     age: age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -343,7 +347,7 @@ bootstrap:
   - name: sops-key
     type: secret
     source: op://vault/sops-key/private
-    target: ~/.config/sops/age/keys.txt
+    # target is optional - auto-detected for SOPS age keys
     mode: "0600"
 ```
 
@@ -355,15 +359,28 @@ comet apply production
 
 ## Troubleshooting
 
-### "Failed to get data key" Error
+### "Failed to get data key" / "0 successful groups required" Error
 
-Make sure your encryption key is available:
+This usually means the age key is missing. Comet will suggest:
+
+```
+ℹ️  Hint: Age key might be missing. Try running:
+  comet bootstrap
+
+Or set the key manually:
+  export SOPS_AGE_KEY="..."
+```
+
+Solutions:
 
 ```bash
-# For age
+# Option 1: Use bootstrap
+comet bootstrap
+
+# Option 2: Set environment variable
 export SOPS_AGE_KEY_FILE=/path/to/key.txt
 
-# For GPG
+# Option 3: For GPG
 gpg --list-secret-keys  # Verify key is imported
 ```
 

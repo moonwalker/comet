@@ -32,7 +32,14 @@ func sopsData(ref string) (string, error) {
 	ext := filepath.Ext(u.Path)
 	b, err := decrypt.File(u.Path, ext)
 	if err != nil {
-		return "", err
+		// Detect common SOPS errors and provide helpful messages
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "no age identity") ||
+			strings.Contains(errMsg, "0 successful groups required") ||
+			strings.Contains(errMsg, "failed to get the data key") {
+			return "", fmt.Errorf("failed to decrypt SOPS file: %w\n\nℹ️  Hint: Age key might be missing. Try running:\n  comet bootstrap\n\nOr set the key manually:\n  export SOPS_AGE_KEY=\"...\"", err)
+		}
+		return "", fmt.Errorf("failed to decrypt SOPS file: %w", err)
 	}
 
 	if slices.Contains(yamlExts, ext) {

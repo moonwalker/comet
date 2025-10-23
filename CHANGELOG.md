@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] - 2025-10-23
+
+### Added
+- **Auto-detect SOPS age key path** - Bootstrap `target` is now optional for SOPS age keys. If the source name contains "sops" and "age", it automatically uses the platform-specific default path
+- **Helpful SOPS error messages** - When SOPS fails to decrypt due to missing age keys, provide clear hint suggesting `comet bootstrap` or setting `SOPS_AGE_KEY`
+
+### Changed
+- Improved bootstrap configuration - SOPS age key target path is now optional and auto-detected based on platform
+
 ## [0.6.5] - 2025-10-23
 
 ### Fixed
@@ -153,7 +162,8 @@ bootstrap:
 - Support for Terraform and OpenTofu
 - CLI commands: plan, apply, destroy, list, output, clean
 
-[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.5...HEAD
+[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.6...HEAD
+[0.6.6]: https://github.com/moonwalker/comet/releases/tag/v0.6.6
 [0.6.5]: https://github.com/moonwalker/comet/releases/tag/v0.6.5
 [0.6.4]: https://github.com/moonwalker/comet/releases/tag/v0.6.4
 [0.6.3]: https://github.com/moonwalker/comet/releases/tag/v0.6.3

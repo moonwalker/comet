@@ -63,7 +63,9 @@ bootstrap:
   - name: sops-age-key
     type: secret
     source: op://vault/infrastructure/sops-age-key
-    target: ~/.config/sops/age/keys.txt
+    # target is optional - auto-detected for SOPS age keys
+    # macOS: ~/Library/Application Support/sops/age/keys.txt
+    # Linux: ~/.config/sops/age/keys.txt
     mode: "0600"
 ```
 
@@ -109,23 +111,30 @@ Fetch secrets from 1Password or SOPS and save to local files with proper permiss
 
 ```yaml
 bootstrap:
-  # 1Password secret
+  # 1Password secret - SOPS age key (target auto-detected)
   - name: sops-key
     type: secret
-    source: op://vault/item/field        # 1Password reference
-    target: ~/.config/sops/age/keys.txt  # Save location (~ expanded)
-    mode: "0600"                         # File permissions (optional, default: 0600)
+    source: op://vault/sops-age-key/private  # Source contains "sops" and "age"
+    # target is optional - automatically uses platform-specific path
+    mode: "0600"  # File permissions (optional, default: 0600)
   
-  # SOPS secret
+  # Custom secret with explicit target
   - name: api-token
     type: secret
-    source: sops://secrets.enc.yaml#/api/token  # SOPS file reference
-    target: ~/.secrets/api-token
-    mode: "0400"                         # Read-only for extra security
-    optional: true                       # Don't fail if source doesn't exist
+    source: op://vault/api-token/credential
+    target: ~/.secrets/api-token  # Custom path (~ expanded)
+    mode: "0400"                  # Read-only for extra security
+    optional: true                # Don't fail if source doesn't exist
+  
+  # SOPS secret
+  - name: db-password
+    type: secret
+    source: sops://secrets.enc.yaml#/database/password
+    target: ~/.secrets/db-password
 ```
 
 **Features:**
+- **Auto-detect SOPS age key paths** - If source name contains "sops" and "age", target is optional and uses platform defaults
 - Automatically creates parent directories
 - Supports both `op://` (1Password) and `sops://` (SOPS) sources
 - Customizable file permissions (default: `0600`)
@@ -210,11 +219,11 @@ bootstrap:
     type: check
     command: op,sops,tofu
   
-  # 2. Fetch SOPS key from 1Password
+  # 2. Fetch SOPS key from 1Password (target auto-detected)
   - name: sops-key
     type: secret
     source: op://vault/infrastructure/sops-age-key
-    target: ~/.config/sops/age/keys.txt
+    # target is optional for SOPS age keys
     mode: "0600"
   
   # 3. Authenticate with cloud provider (optional)
@@ -287,7 +296,7 @@ bootstrap:
   - name: sops-key
     type: secret
     source: op://vault/sops/key
-    target: ~/.config/sops/age/keys.txt
+    # target is optional - auto-detected for SOPS age keys
   
   - name: github-token
     type: secret
@@ -319,12 +328,12 @@ If you were using `op://` or `sops://` in the `env` section (removed in v0.6.0),
 env:
   SOPS_AGE_KEY: op://vault/key/private
 
-# NEW (v0.6.0) - Fast after bootstrap
+# NEW (v0.6.0+) - Fast after bootstrap
 bootstrap:
   - name: sops-key
     type: secret
     source: op://vault/key/private
-    target: ~/.config/sops/age/keys.txt
+    # target optional for SOPS age keys (auto-detected)
     mode: "0600"
 ```
 
@@ -378,7 +387,7 @@ bootstrap:
   - name: sops-key
     type: secret
     source: op://vault/key/private
-    target: ~/.config/sops/age/keys.txt
+    # target optional (auto-detected for SOPS age keys)
     mode: "0600"
 ```
 
