@@ -42,6 +42,10 @@ func kubeconfig(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Apply stack-specific environment variables and defer cleanup
+	cleanup := stack.ApplyEnvs()
+	defer cleanup()
+
 	if save {
 		return stack.Kubeconfig.Save(config, stacks, executor, stack.Name)
 	}

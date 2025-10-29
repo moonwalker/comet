@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-10-29
+
+### Fixed
+- **CRITICAL: `envs()` environment variable isolation** - Environment variables from `envs()` are now scoped per-stack instead of polluting the global environment
+  - Previously, all stacks' `envs()` were applied globally during parsing, causing the last-loaded stack to overwrite earlier ones
+  - This broke multi-cloud setups where different stacks use the same environment variable names (e.g., `AWS_ACCESS_KEY_ID` for different S3-compatible backends)
+  - **Impact:** `comet init do-dev` would fail with `InvalidAccessKeyId` if another stack (loaded later alphabetically) set different credentials
+  - **Solution:** `envs()` now stores variables in the stack and only applies them when that specific stack is executed
+  - Environment variables are automatically restored after stack execution to prevent pollution
+  - Fixes issues with DigitalOcean Spaces, Hetzner Object Storage, and other S3-compatible backends in the same repository
+- **`comet kubeconfig` now respects stack-specific environment variables** - Fixed same isolation issue affecting kubeconfig command
+
+### Added
+- **Debug logging for environment variables** - Help diagnose credential and secret resolution issues
+  - `LOG_LEVEL=debug comet init <stack>` now shows when environment variables are stored and applied
+  - Logs masked AWS credentials, DigitalOcean tokens, and other sensitive values (shows first 4 and last 4 characters)
+  - Shows which stack's environment variables are active during Terraform execution
+
+### Changed
+- Documentation updated to use correct `LOG_LEVEL=debug` environment variable (was incorrectly documented as `COMET_LOG_LEVEL`)
+
 ## [0.6.8] - 2025-10-29
 
 ### Fixed
@@ -130,7 +151,7 @@ bootstrap:
 ## [0.5.0] - 2025-10-10
 
 ### Added
-- **Debug logging** - Added detailed debug logs for performance profiling of stack parsing, esbuild bundling, and secret resolution. Enable with `log_level: debug` in config or `COMET_LOG_LEVEL=debug` environment variable.
+- **Debug logging** - Added detailed debug logs for performance profiling of stack parsing, esbuild bundling, and secret resolution. Enable with `log_level: debug` in config or `LOG_LEVEL=debug` environment variable.
 - **Configuration documentation** - New comprehensive configuration guide in website docs covering all options, environment variables, and performance considerations.
 - **`comet types` command** - Generate TypeScript definitions for IDE support on-demand
 
@@ -183,7 +204,9 @@ bootstrap:
 - Support for Terraform and OpenTofu
 - CLI commands: plan, apply, destroy, list, output, clean
 
-[Unreleased]: https://github.com/moonwalker/comet/compare/v0.6.7...HEAD
+[Unreleased]: https://github.com/moonwalker/comet/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/moonwalker/comet/releases/tag/v0.7.0
+[0.6.8]: https://github.com/moonwalker/comet/releases/tag/v0.6.8
 [0.6.7]: https://github.com/moonwalker/comet/releases/tag/v0.6.7
 [0.6.6]: https://github.com/moonwalker/comet/releases/tag/v0.6.6
 [0.6.5]: https://github.com/moonwalker/comet/releases/tag/v0.6.5

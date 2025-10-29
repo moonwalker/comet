@@ -29,6 +29,18 @@ type executor struct {
 	config *schema.Config
 }
 
+// maskSecret returns a masked version of a secret for logging
+// Shows first 4 and last 4 characters if length > 8, otherwise shows length
+func maskSecret(secret string) string {
+	if secret == "" {
+		return "<not set>"
+	}
+	if len(secret) <= 8 {
+		return fmt.Sprintf("<set, len=%d>", len(secret))
+	}
+	return fmt.Sprintf("%s...%s", secret[:4], secret[len(secret)-4:])
+}
+
 func NewExecutor(config *schema.Config) (*executor, error) {
 	_, err := exec.LookPath(config.Command)
 	if err != nil {
@@ -46,6 +58,12 @@ func NewExecutor(config *schema.Config) (*executor, error) {
 
 func (e *executor) Init(component *schema.Component) error {
 	log.Debug("init", "component", component.Name)
+
+	// Debug: Log critical environment variables for S3 backend
+	log.Debug("init environment check",
+		"AWS_ACCESS_KEY_ID", maskSecret(os.Getenv("AWS_ACCESS_KEY_ID")),
+		"AWS_SECRET_ACCESS_KEY", maskSecret(os.Getenv("AWS_SECRET_ACCESS_KEY")),
+		"DIGITALOCEAN_TOKEN", maskSecret(os.Getenv("DIGITALOCEAN_TOKEN")))
 
 	_, err := prepareProvision(component, e.config.GenerateBackend)
 	if err != nil {
@@ -66,6 +84,12 @@ func (e *executor) Init(component *schema.Component) error {
 
 func (e *executor) Plan(component *schema.Component) (bool, error) {
 	log.Debug("plan", "component", component.Name)
+
+	// Debug: Log critical environment variables for S3 backend
+	log.Debug("plan environment check",
+		"AWS_ACCESS_KEY_ID", maskSecret(os.Getenv("AWS_ACCESS_KEY_ID")),
+		"AWS_SECRET_ACCESS_KEY", maskSecret(os.Getenv("AWS_SECRET_ACCESS_KEY")),
+		"DIGITALOCEAN_TOKEN", maskSecret(os.Getenv("DIGITALOCEAN_TOKEN")))
 
 	varsfile, err := prepareProvision(component, e.config.GenerateBackend)
 	if err != nil {

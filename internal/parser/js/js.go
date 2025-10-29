@@ -60,7 +60,7 @@ func (vm *jsinterpreter) Parse(path string) (*schema.Stack, error) {
 	setupStart := time.Now()
 	vm.rt.Set("print", fmt.Println)
 	vm.rt.Set("env", vm.envProxy())
-	vm.rt.Set("envs", vm.envsFunc)
+	vm.rt.Set("envs", vm.envsFuncForStack(stack))
 	vm.rt.Set("secrets", vm.secretsFunc)
 	vm.rt.Set("secretsConfig", vm.secretsConfigFunc)
 	vm.rt.Set("secret", vm.secretFunc)
@@ -92,6 +92,67 @@ func (vm *jsinterpreter) envProxy() any {
 	})
 }
 
+// envsFuncForStack creates an envs() function that stores environment variables in the stack
+// instead of setting them globally. They will be applied later when the stack is actually executed.
+func (vm *jsinterpreter) envsFuncForStack(stack *schema.Stack) func(...goja.Value) any {
+	return func(args ...goja.Value) any {
+		if len(args) == 0 {
+			return nil
+		}
+
+		// Check if first argument is an object (bulk mode)
+		if len(args) == 1 {
+			obj := args[0].ToObject(vm.rt)
+			if obj != nil {
+				log.Debug("envs() storing variables for stack", "stack", stack.Name, "keyCount", len(obj.Keys()))
+
+				// Store environment variables in stack (don't set globally yet)
+				for _, key := range obj.Keys() {
+					value := obj.Get(key)
+					if value != nil && !goja.IsUndefined(value) && !goja.IsNull(value) {
+						valueStr := value.String()
+						stack.Envs[key] = valueStr
+
+						// Log environment variable (mask sensitive values)
+						maskedValue := valueStr
+						if len(valueStr) > 8 {
+							maskedValue = valueStr[:4] + "..." + valueStr[len(valueStr)-4:]
+						} else if len(valueStr) > 0 {
+							maskedValue = fmt.Sprintf("<len=%d>", len(valueStr))
+						}
+						log.Debug("envs() stored", "stack", stack.Name, "key", key, "value", maskedValue)
+					}
+				}
+				return nil
+			}
+		}
+
+		// Original single key-value mode
+		if len(args) >= 1 {
+			key := args[0].String()
+
+			// If only key provided, return the value from stack or environment
+			if len(args) == 1 {
+				if val, ok := stack.Envs[key]; ok {
+					return val
+				}
+				return os.Getenv(key)
+			}
+
+			// If key and value provided, store it in stack
+			if len(args) >= 2 {
+				value := args[1].String()
+				stack.Envs[key] = value
+				log.Debug("envs() stored single", "stack", stack.Name, "key", key)
+				return value
+			}
+		}
+
+		return nil
+	}
+}
+
+// Legacy envsFunc for backwards compatibility (not used in normal parsing)
 func (vm *jsinterpreter) envsFunc(args ...goja.Value) any {
 	if len(args) == 0 {
 		return nil
@@ -101,14 +162,26 @@ func (vm *jsinterpreter) envsFunc(args ...goja.Value) any {
 	if len(args) == 1 {
 		obj := args[0].ToObject(vm.rt)
 		if obj != nil {
+			log.Debug("envs() called with object", "keyCount", len(obj.Keys()))
+
 			// Bulk environment variable setting
 			for _, key := range obj.Keys() {
 				value := obj.Get(key)
 				if value != nil && !goja.IsUndefined(value) && !goja.IsNull(value) {
-					err := os.Setenv(key, value.String())
+					valueStr := value.String()
+					err := os.Setenv(key, valueStr)
 					if err != nil {
 						log.Fatal(err)
 					}
+
+					// Log environment variable setting (mask sensitive values)
+					maskedValue := valueStr
+					if len(valueStr) > 8 {
+						maskedValue = valueStr[:4] + "..." + valueStr[len(valueStr)-4:]
+					} else if len(valueStr) > 0 {
+						maskedValue = fmt.Sprintf("<len=%d>", len(valueStr))
+					}
+					log.Debug("envs() set", "key", key, "value", maskedValue)
 				}
 			}
 			return nil
@@ -131,6 +204,7 @@ func (vm *jsinterpreter) envsFunc(args ...goja.Value) any {
 			if err != nil {
 				log.Fatal(err)
 			}
+			log.Debug("envs() set single", "key", key)
 			return value
 		}
 	}

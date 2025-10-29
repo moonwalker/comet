@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 )
@@ -24,6 +25,7 @@ type (
 		Appends    map[string][]string `json:"appends"`
 		Components []*Component        `json:"components"`
 		Kubeconfig *Kubeconfig         `json:"kubeconfig"`
+		Envs       map[string]string   `json:"envs,omitempty"` // Environment variables to set for this stack
 	}
 
 	Metadata struct {
@@ -44,6 +46,7 @@ func NewStack(path string, t string) *Stack {
 		Type:       t,
 		Appends:    make(map[string][]string, 0),
 		Components: make([]*Component, 0),
+		Envs:       make(map[string]string, 0),
 	}
 }
 
@@ -96,6 +99,41 @@ func (s *Stack) GetComponents(filterNames []string) ([]*Component, error) {
 	}
 
 	return result, nil
+}
+
+// ApplyEnvs sets the environment variables defined in this stack.
+// Returns a cleanup function to restore the previous values.
+func (s *Stack) ApplyEnvs() func() {
+	if len(s.Envs) == 0 {
+		return func() {} // No-op cleanup
+	}
+
+	// Save current values for restoration
+	previousValues := make(map[string]string)
+	wasSet := make(map[string]bool)
+
+	for key := range s.Envs {
+		if val, ok := os.LookupEnv(key); ok {
+			previousValues[key] = val
+			wasSet[key] = true
+		}
+	}
+
+	// Apply stack's environment variables
+	for key, value := range s.Envs {
+		os.Setenv(key, value)
+	}
+
+	// Return cleanup function
+	return func() {
+		for key := range s.Envs {
+			if wasSet[key] {
+				os.Setenv(key, previousValues[key])
+			} else {
+				os.Unsetenv(key)
+			}
+		}
+	}
 }
 
 func (s *Stacks) AddStack(stack *Stack) error {

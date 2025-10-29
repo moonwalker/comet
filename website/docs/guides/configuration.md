@@ -349,7 +349,7 @@ comet --config=custom-config.yaml list
 comet --dir=infrastructure/stacks list
 
 # Override log level
-COMET_LOG_LEVEL=debug comet list
+LOG_LEVEL=debug comet list
 ```
 
 ## Environment Variable Precedence
@@ -441,7 +441,7 @@ log_level: debug
 Or via environment variable:
 
 ```bash
-COMET_LOG_LEVEL=debug comet list
+LOG_LEVEL=debug comet list
 ```
 
 Debug logs show:

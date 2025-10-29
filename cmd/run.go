@@ -25,6 +25,10 @@ func run(args []string, reverse bool, cb func(*schema.Component, schema.Executor
 		log.Fatal(err)
 	}
 
+	// Apply stack-specific environment variables and defer cleanup
+	cleanup := stack.ApplyEnvs()
+	defer cleanup()
+
 	var componentNames []string
 	if len(args) > 1 {
 		componentNames = args[1:]
