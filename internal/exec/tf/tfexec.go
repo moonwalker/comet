@@ -32,7 +32,13 @@ type executor struct {
 func NewExecutor(config *schema.Config) (*executor, error) {
 	_, err := exec.LookPath(config.Command)
 	if err != nil {
-		return nil, fmt.Errorf(errCmdNotFound, config.Command)
+		return nil, fmt.Errorf(
+			"%s not found in PATH\n\n"+
+				"Please install OpenTofu or Terraform:\n"+
+				"  • OpenTofu:  https://opentofu.org\n"+
+				"  • Terraform: https://developer.hashicorp.com/terraform",
+			config.Command,
+		)
 	}
 
 	return &executor{config}, nil
