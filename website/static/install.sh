@@ -49,10 +49,14 @@ fi
 
 echo "Latest release: $LATEST_RELEASE"
 
+# Extract version without 'v' prefix for asset filename
+VERSION="${LATEST_RELEASE#v}"
+
 # Construct download URL
-# Adjust the filename pattern to match your release assets
-# Example: comet_v1.0.0_darwin_amd64.tar.gz or comet_darwin_amd64.tar.gz
-DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST_RELEASE/${BINARY_NAME}_${OS}_${ARCH}.tar.gz"
+# GoReleaser creates archives like: comet_0.6.7_darwin_arm64.tar.gz
+# (version without 'v' prefix, even though tag is v0.6.7)
+# Windows uses .tar.gz for GoReleaser v2
+DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST_RELEASE/${BINARY_NAME}_${VERSION}_${OS}_${ARCH}.tar.gz"
 
 echo "Downloading from: $DOWNLOAD_URL"
 
@@ -64,15 +68,9 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 curl -fsSL "$DOWNLOAD_URL" | tar -xz -C "$TMP_DIR"
 
 # Determine installation directory
-if [ -w "/usr/local/bin" ]; then
-  INSTALL_DIR="/usr/local/bin"
-elif [ -d "$HOME/.local/bin" ]; then
-  INSTALL_DIR="$HOME/.local/bin"
-else
-  # Create ~/.local/bin if it doesn't exist
-  INSTALL_DIR="$HOME/.local/bin"
-  mkdir -p "$INSTALL_DIR"
-fi
+# Prefer ~/.local/bin (modern standard, no sudo needed)
+INSTALL_DIR="$HOME/.local/bin"
+mkdir -p "$INSTALL_DIR"
 
 echo "Installing to: $INSTALL_DIR"
 
