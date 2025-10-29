@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.8] - 2025-10-29
+
+### Fixed
+- Install script now correctly downloads release assets (strips 'v' prefix from version in asset filenames)
+
+### Changed
+- Install script simplified to always use `~/.local/bin` for consistent, user-local installation
+- Improved error message when OpenTofu/Terraform not found in PATH
+
 ## [0.6.7] - 2025-10-23
 
 ### Added
