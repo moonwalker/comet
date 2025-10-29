@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2025-10-29
+
+### Added
+- **`kubeconfig()` now supports static token authentication** - Added `token` field for bearer token auth
+  - Use `token: "your-token"` instead of `exec_command` for simplified authentication
+  - Mutually exclusive with exec-based authentication (exec_command takes priority if both provided)
+  - Useful for CI/CD pipelines, service accounts, and environments without cloud CLI tools
+  - Example: `kubeconfig({ clusters: [{ context: "ctx", host: "...", cert: "...", token: "..." }] })`
+
 ## [0.7.0] - 2025-10-29
 
 ### Fixed
@@ -204,7 +213,8 @@ bootstrap:
 - Support for Terraform and OpenTofu
 - CLI commands: plan, apply, destroy, list, output, clean
 
-[Unreleased]: https://github.com/moonwalker/comet/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/moonwalker/comet/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/moonwalker/comet/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/moonwalker/comet/releases/tag/v0.7.0
 [0.6.8]: https://github.com/moonwalker/comet/releases/tag/v0.6.8
 [0.6.7]: https://github.com/moonwalker/comet/releases/tag/v0.6.7

@@ -42,6 +42,47 @@ secrets('sops://other-file.yaml#/special/secret')
 secrets('op://vault/item/field')
 ```
 
+## Kubernetes Config
+
+Configure kubectl access for your clusters:
+
+```javascript
+// Token-based authentication (simple, for CI/CD)
+kubeconfig({
+  current: 0,
+  clusters: [{
+    context: 'my-cluster',
+    host: 'https://kubernetes.example.com',
+    cert: 'LS0tLS1CRUdJTi...',  // Base64-encoded CA cert
+    token: 'dop_v1_...'          // Static bearer token
+  }]
+})
+
+// Exec-based authentication (more secure, uses cloud CLI)
+kubeconfig({
+  current: 0,
+  clusters: [{
+    context: 'my-cluster',
+    host: 'https://kubernetes.example.com',
+    cert: 'LS0tLS1CRUdJTi...',
+    exec_command: 'doctl',
+    exec_args: ['kubernetes', 'cluster', 'kubeconfig', 'exec-credential']
+  }]
+})
+
+// Use with secrets (recommended)
+const cluster = secret('k8s/cluster')
+kubeconfig({
+  current: 0,
+  clusters: [{
+    context: cluster.context,
+    host: cluster.host,
+    cert: cluster.cert,
+    token: cluster.token
+  }]
+})
+```
+
 ## Userland Patterns
 
 Create your own helpers for your team's patterns:

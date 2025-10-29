@@ -103,7 +103,9 @@ export interface KubeconfigCluster {
   host: string;
   /** Base64-encoded cluster CA certificate */
   cert: string;
-  /** Exec plugin command */
+  /** Static bearer token for authentication (mutually exclusive with exec_command) */
+  token?: string;
+  /** Exec plugin command (mutually exclusive with token) */
   exec_command?: string;
   /** Exec plugin arguments */
   exec_args?: string[];

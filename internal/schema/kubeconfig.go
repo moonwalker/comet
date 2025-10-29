@@ -25,6 +25,7 @@ type (
 		Context        string      `json:"context"`
 		Host           string      `json:"host"`
 		Cert           string      `json:"cert"`
+		Token          string      `json:"token"` // Static token authentication
 		ExecApiVersion string      `json:"exec_apiversion"`
 		ExecCommand    string      `json:"exec_command"`
 		ExecArgs       interface{} `json:"exec_args"` // Can be []string or string (template)
@@ -208,6 +209,7 @@ users:
 {{- range .Clusters }}
   - name: {{ .Context }}
     user:
+{{- if .ExecCommand }}
       exec:
         apiVersion: {{ .ExecApiVersion }}
         command: {{ .ExecCommand }}
@@ -217,4 +219,7 @@ users:
         - {{ . }}
         {{-  end }}
         {{- end }}
+{{- else if .Token }}
+      token: {{ .Token }}
+{{- end }}
 {{- end }}`
