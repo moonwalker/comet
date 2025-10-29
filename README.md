@@ -82,9 +82,39 @@ Comet provides:
 
 ## Installation
 
+### Quick Install (Recommended)
+
+```bash
+curl -fsSL https://moonwalker.github.io/comet/install.sh | sh
+```
+
+This will install Comet to `~/.local/bin/comet`. Make sure `~/.local/bin` is in your PATH.
+
 ### Prerequisites
 
-- Go 1.23 or later
+Before using Comet, you need one of the following installed:
+
+**OpenTofu (Recommended)**
+```bash
+# macOS
+brew install opentofu
+
+# Linux/macOS - Official installer
+curl -fsSL https://get.opentofu.org/install-opentofu.sh -o install-opentofu.sh
+chmod +x install-opentofu.sh
+./install-opentofu.sh --install-method standalone
+
+# For signature verification, install cosign or GPG:
+brew install cosign  # or: brew install gnupg
+```
+
+**Or Terraform**
+```bash
+# macOS
+brew install terraform
+
+# Linux/Windows - see https://developer.hashicorp.com/terraform/install
+```
 
 ### Building from Source
 
@@ -93,6 +123,8 @@ git clone https://github.com/moonwalker/comet.git
 cd comet
 go build
 ```
+
+Requires Go 1.23 or later.
 
 ## 💡 It's Just JavaScript!
 
