@@ -237,12 +237,31 @@ comet output production gke
 ```
 
 **Example Output:**
-```json
-{
-  "cluster_endpoint": "https://35.123.45.67",
-  "cluster_ca_certificate": "LS0tLS1CRU...",
-  "cluster_name": "prod-gke-cluster"
-}
+```
+cluster_endpoint = "https://35.123.45.67"
+cluster_ca_certificate = "LS0tLS1CRU..."
+cluster_name = "prod-gke-cluster"
+```
+
+### Show a Specific Output Key
+
+```bash
+comet output <stack> <component> <key>
+```
+
+**Example:**
+```bash
+comet output production gke cluster_endpoint
+```
+
+**Example Output:**
+```
+"https://35.123.45.67"
+```
+
+This is useful for scripting and automation:
+```bash
+ENDPOINT=$(comet output production gke cluster_endpoint)
 ```
 
 ### Show All Outputs from All Components

@@ -121,6 +121,11 @@ Example:
 comet output dev vpc
 ```
 
+To get a specific output value:
+```bash
+comet output dev vpc vpc_id
+```
+
 ### Destroy Infrastructure
 
 Remove infrastructure:
