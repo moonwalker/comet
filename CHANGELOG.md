@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2025-11-02
+
+### Added
+- **`comet output --json` flag** - Output values in JSON format for easier processing with tools like jq
+  - Works with all output modes (all components, single component, or specific key)
+  - Outputs pretty-printed JSON with proper indentation
+  - Example: `comet output production gke --json | jq -r '.cluster_endpoint'`
+
+### Changed
+- **`comet output` with key filter now outputs plain values** - String values no longer wrapped in quotes for easier scripting
+  - Before: `"https://example.com"` 
+  - After: `https://example.com`
+  - Makes it easier to use in shell scripts: `ENDPOINT=$(comet output prod gke cluster_endpoint)`
+
 ## [0.7.2] - 2025-11-01
 
 ### Added

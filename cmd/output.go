@@ -11,6 +11,8 @@ import (
 )
 
 var (
+	outputJSON bool
+
 	outputCmd = &cobra.Command{
 		Use:   "output <stack> [component] [key]",
 		Short: "Show output values from components",
@@ -18,13 +20,16 @@ var (
 
 If only stack is provided, shows outputs from all components.
 If stack and component are provided, shows outputs from that component.
-If stack, component, and key are provided, shows only that specific output value.`,
+If stack, component, and key are provided, shows only that specific output value.
+
+The --json flag formats the output as JSON, which can be piped to tools like jq.`,
 		Run:  output,
 		Args: cobra.RangeArgs(1, 3),
 	}
 )
 
 func init() {
+	outputCmd.Flags().BoolVar(&outputJSON, "json", false, "Output in JSON format")
 	rootCmd.AddCommand(outputCmd)
 }
 
@@ -43,6 +48,42 @@ func output(cmd *cobra.Command, args []string) {
 			log.Fatal(err)
 		}
 
+		// JSON output mode
+		if outputJSON {
+			// If a specific key is requested, output only that value as JSON
+			if keyFilter != "" {
+				if v, ok := out[keyFilter]; ok {
+					var rawValue interface{}
+					if err := json.Unmarshal(v.Value, &rawValue); err == nil {
+						jsonBytes, _ := json.MarshalIndent(rawValue, "", "  ")
+						fmt.Println(string(jsonBytes))
+					} else {
+						// Fallback to string
+						jsonBytes, _ := json.MarshalIndent(v.String(), "", "  ")
+						fmt.Println(string(jsonBytes))
+					}
+				} else {
+					log.Fatal(fmt.Errorf("output key '%s' not found in component '%s'", keyFilter, component.Name))
+				}
+				return
+			}
+
+			// Output all values as JSON object
+			result := make(map[string]interface{})
+			for k, v := range out {
+				var rawValue interface{}
+				if err := json.Unmarshal(v.Value, &rawValue); err == nil {
+					result[k] = rawValue
+				} else {
+					result[k] = v.String()
+				}
+			}
+			jsonBytes, _ := json.MarshalIndent(result, "", "  ")
+			fmt.Println(string(jsonBytes))
+			return
+		}
+
+		// Plain text output mode
 		// If a specific key is requested, only show that
 		if keyFilter != "" {
 			if v, ok := out[keyFilter]; ok {
@@ -50,15 +91,15 @@ func output(cmd *cobra.Command, args []string) {
 				if err := json.Unmarshal(v.Value, &rawValue); err == nil {
 					switch val := rawValue.(type) {
 					case string:
-						fmt.Printf("\"%s\"\n", val)
+						fmt.Println(val)
 					case []interface{}, map[string]interface{}:
 						jsonBytes, _ := json.Marshal(val)
-						fmt.Printf("%s\n", string(jsonBytes))
+						fmt.Println(string(jsonBytes))
 					default:
 						fmt.Printf("%v\n", val)
 					}
 				} else {
-					fmt.Printf("\"%s\"\n", v.String())
+					fmt.Println(v.String())
 				}
 			} else {
 				log.Fatal(fmt.Errorf("output key '%s' not found in component '%s'", keyFilter, component.Name))
@@ -66,7 +107,7 @@ func output(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		// Show all outputs
+		// Show all outputs in human-readable format
 		for k, v := range out {
 			// Try to unmarshal to detect the actual type
 			var rawValue interface{}

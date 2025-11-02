@@ -256,12 +256,13 @@ comet output production gke cluster_endpoint
 
 **Example Output:**
 ```
-"https://35.123.45.67"
+https://35.123.45.67
 ```
 
 This is useful for scripting and automation:
 ```bash
 ENDPOINT=$(comet output production gke cluster_endpoint)
+# ENDPOINT now contains: https://35.123.45.67 (no quotes)
 ```
 
 ### Show All Outputs from All Components
@@ -274,6 +275,49 @@ comet output <stack>
 ```bash
 comet output production
 ```
+
+### JSON Output Format
+
+Use the `--json` flag to output in JSON format, which can be piped to tools like `jq`:
+
+```bash
+comet output <stack> <component> --json
+```
+
+**Example:**
+```bash
+comet output production gke --json
+```
+
+**Example Output:**
+```json
+{
+  "cluster_endpoint": "https://35.123.45.67",
+  "cluster_ca_certificate": "LS0tLS1CRU...",
+  "cluster_name": "prod-gke-cluster"
+}
+```
+
+You can also get a specific key in JSON format:
+```bash
+comet output production gke cluster_endpoint --json
+```
+
+**Example Output:**
+```json
+"https://35.123.45.67"
+```
+
+**Piping to jq:**
+```bash
+# Extract a specific field
+comet output production gke --json | jq -r '.cluster_endpoint'
+
+# Get all cluster names from all components
+comet output production --json | jq -r '.cluster_name'
+```
+
+**Note:** When using the `--json` flag, sensitive values are displayed in plain text.
 
 ## comet destroy
 
